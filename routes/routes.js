@@ -7,7 +7,7 @@ const DriverController = require("../controllers/DriverController");
 const OrderController = require("../controllers/OrderController");
 
 router.get("/", (req, res) => {
-  res.send("DragonFly secure web Server to handle internal operations. Please Visit trydragonfly.com for more information")
+  res.redirect('https://trydragonfly.com')
 })
 
 
