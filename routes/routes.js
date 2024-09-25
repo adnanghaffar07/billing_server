@@ -5,11 +5,15 @@ const router = express.Router();
 
 const DriverController = require("../controllers/DriverController");
 const OrderController = require("../controllers/OrderController");
+const HealthController = require("../controllers/HealthController");
 
 router.get("/", (req, res) => {
   res.redirect('https://trydragonfly.com')
 })
 
+/**Health Check */
+router.route("/health")
+  .get(HealthController.check_heatlth)
 
 /** Order Routes Below */
 
