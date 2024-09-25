@@ -21,11 +21,13 @@ module.exports = {
   get_order_status: async (req, res) => {
     try {
       const { teamUUID, status, teamId } = req.query;
+      const orderId = req.params.id;
 
       // Initialize an array to hold missing parameters
       const missingParams = [];
 
       // Check for missing query parameters
+      if(!orderId) missingParams.push('orderId')
       if (!teamUUID) missingParams.push("teamUUID");
       if (!status) missingParams.push("status");
       if (!teamId) missingParams.push("teamId");
@@ -47,6 +49,7 @@ module.exports = {
         teamUUID,
         status,
         teamId,
+        orderId,
       };
 
       // Send data to Make.com webhook
