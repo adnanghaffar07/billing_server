@@ -2,7 +2,7 @@ const axios = require("axios");
 
 const webhookUrl = "https://hook.us1.make.com/guukybx41137y39coqcly1tl4fo46yyl"; // replace with your actual webhook URL
 const webhookUrl_2 = "https://hook.us1.make.com/n6tzxxn45ezrws47hmufcdazc47vn6aa"; // replace with your actual webhook URL
-
+const webhookUrl_3  = "https://hook.us1.make.com/nh1q6e4pkj01mg79a2y1502dwgb8rke2";
 async function sendErrorWebhook(errorMessage, additionalInfo) {
   try {
     await axios.post(webhookUrl, {
@@ -55,7 +55,9 @@ module.exports = {
 
       // Send data to Make.com webhook
       try {
-        await axios.post(webhookUrl, payload);
+        if(status.trim() === "completed" || status.trim() === "COMPLETED"){
+          await axios.post(webhookUrl, payload);
+        }
       } catch (error) {
         console.error("Error sending data to Make.com webhook:", error.message);
         await sendErrorWebhook("Error sending data to Make.com webhook", {
@@ -186,6 +188,25 @@ module.exports = {
       //       message: "Please check Parameter value is missing",
       //     });
       //   }
+    } catch (err) {
+      res.status(500).json({ status: "fail", message: err.message });
+    }
+  },
+  order_details_change: async (req, res) => {
+    try {
+      const orderId = req.params.id;
+      const body = req.body;
+      const payload = {
+        orderId,
+        ...body
+      } 
+
+      console.log("PAY=>", payload);
+      await axios.post(webhookUrl_3, payload);
+      res.status(200).json({
+        status: "success",
+      });
+      
     } catch (err) {
       res.status(500).json({ status: "fail", message: err.message });
     }

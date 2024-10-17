@@ -21,6 +21,10 @@ router.route("/order/:id/status")
   .get(OrderController.get_order_status)
   .post(OrderController.get_order_status)
 
+
+router.route("/order/:id/details")
+  .post(OrderController.order_details_change)
+
 router.route("/order")
   .post(OrderController.order_details)
 
