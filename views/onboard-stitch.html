@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stitch Driver Onboarding</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 2rem 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .name-group, .address-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .name-group .form-group, .address-group .form-group {
+            flex: 1 1 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+        label.required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input:invalid {
+            border-color: #dc3545;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        input:invalid + .error-message {
+            display: block;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .section-title {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+        }
+        .logout-container {
+            text-align: right;
+            margin-top: 1rem;
+        }
+        .logout-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Stitch Driver Onboarding</h1>
+        <div class="logout-container">
+            <button onclick="handleLogout()" class="logout-button">Logout</button>
+        </div>
+        <form id="stitchForm" action="/api/onboard/stitch" method="POST" onsubmit="return validateForm(event)">
+            <div class="form-group">
+                <label for="reference_id" class="required">Reference ID</label>
+                <input type="text" id="reference_id" name="reference_id" required>
+                <div class="error-message">Reference ID is required</div>
+            </div>
+
+            <h3 class="section-title">Personal Information</h3>
+            <div class="name-group">
+                <div class="form-group">
+                    <label for="firstName" class="required">First Name</label>
+                    <input type="text" id="firstName" name="firstName" required pattern="[A-Za-z\s-]+" title="Please enter a valid first name">
+                    <div class="error-message">Please enter a valid first name</div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName" class="required">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" required pattern="[A-Za-z\s-]+" title="Please enter a valid last name">
+                    <div class="error-message">Please enter a valid last name</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="required">Email</label>
+                <input type="email" id="email" name="email" required pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$" title="Please enter a valid email address">
+                <div class="error-message">Please enter a valid email address</div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone" class="required">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required pattern="^\+1[0-9]{10}$" title="Please enter a valid US phone number starting with +1" placeholder="+15555555556">
+                <div class="error-message">Please enter a valid US phone number (+15555555556)</div>
+            </div>
+
+            <div class="form-group">
+                <label for="dob" class="required">Date of Birth</label>
+                <input type="date" id="dob" name="dob" required max="{{ currentDate }}" title="Please enter your date of birth">
+                <div class="error-message">Please enter a valid date of birth</div>
+            </div>
+
+            <div class="form-group">
+                <label for="tax_id" class="required">SSN/TIN</label>
+                <input type="text" id="tax_id" name="tax_id" required pattern="^\d{3}-\d{2}-\d{4}$" placeholder="XXX-XX-XXXX" title="Please enter a valid SSN/TIN (XXX-XX-XXXX)">
+                <div class="error-message">Please enter a valid SSN/TIN in format XXX-XX-XXXX</div>
+            </div>
+
+            <h3 class="section-title">Address Information</h3>
+            <div class="address-group">
+                <div class="form-group">
+                    <label for="street" class="required">Street Address</label>
+                    <input type="text" id="street" name="address[street]" required>
+                    <div class="error-message">Street address is required</div>
+                </div>
+                <div class="form-group">
+                    <label for="unit">Unit/Apt (Optional)</label>
+                    <input type="text" id="unit" name="address[unit]">
+                </div>
+            </div>
+
+            <div class="address-group">
+                <div class="form-group">
+                    <label for="city" class="required">City</label>
+                    <input type="text" id="city" name="address[city]" required>
+                    <div class="error-message">City is required</div>
+                </div>
+                <div class="form-group">
+                    <label for="state" class="required">State</label>
+                    <input type="text" id="state" name="address[state]" required pattern="[A-Za-z]{2}" title="Please enter a valid two-letter state code" maxlength="2">
+                    <div class="error-message">Please enter a valid two-letter state code</div>
+                </div>
+                <div class="form-group">
+                    <label for="zip" class="required">ZIP Code</label>
+                    <input type="text" id="zip" name="address[zip]" required pattern="^\d{5}(-\d{4})?$" title="Please enter a valid ZIP code">
+                    <div class="error-message">Please enter a valid ZIP code</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="default_rate">Default Rate (%)</label>
+                <input type="number" id="default_rate" name="default_rate" min="0" max="100" step="0.01" value="0">
+                <div class="error-message">Please enter a valid rate between 0 and 100</div>
+            </div>
+
+            <div class="form-group">
+                <label for="default_fee">Default Fee</label>
+                <input type="number" id="default_fee" name="default_fee" min="0" step="0.01" value="0">
+                <div class="error-message">Please enter a valid fee amount</div>
+            </div>
+
+            <button type="submit" class="button">Submit</button>
+        </form>
+        <a href="/onboard" class="back-link">Back to Onboarding Options</a>
+    </div>
+
+    <script>
+        // Set max date for DOB to today
+        const today = new Date();
+        const maxDate = today.toISOString().split('T')[0];
+        document.getElementById('dob').setAttribute('max', maxDate);
+
+        // Check authentication on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/auth/verify')
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+        });
+
+        function handleLogout() {
+            fetch('/api/auth/logout')
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                });
+        }
+
+        function validateForm(event) {
+            const form = event.target;
+            const requiredFields = form.querySelectorAll('[required]');
+            let isValid = true;
+            const errors = [];
+
+            requiredFields.forEach(field => {
+                const value = field.value.trim();
+                if (!value) {
+                    errors.push(`${field.labels[0].textContent.replace(' *', '')} is required`);
+                    isValid = false;
+                }
+            });
+
+            // Phone validation
+            const phone = form.phone.value.trim();
+            if (phone && !/^\+1[0-9]{10}$/.test(phone)) {
+                errors.push('Phone number must be in format +15555555556');
+                isValid = false;
+            }
+
+            // SSN/TIN validation
+            const taxId = form.tax_id.value.trim();
+            if (taxId && !/^\d{3}-\d{2}-\d{4}$/.test(taxId)) {
+                errors.push('SSN/TIN must be in format XXX-XX-XXXX');
+                isValid = false;
+            }
+
+            // ZIP code validation
+            const zip = form.querySelector('[name="address[zip]"]').value.trim();
+            if (zip && !/^\d{5}(-\d{4})?$/.test(zip)) {
+                errors.push('ZIP code must be in format 12345 or 12345-6789');
+                isValid = false;
+            }
+
+            // State validation
+            const state = form.querySelector('[name="address[state]"]').value.trim();
+            if (state && !/^[A-Za-z]{2}$/.test(state)) {
+                errors.push('State must be a two-letter code (e.g., CA)');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+                alert(errors.join('\n'));
+            }
+
+            return isValid;
+        }
+    </script>
+</body>
+</html>

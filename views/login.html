@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Driver Onboarding</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        .nav-buttons {
+            margin-top: 1rem;
+            width: 100%;
+            max-width: 300px;
+        }
+        .button-group {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            width: 100%;
+        }
+        .button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        .login-button {
+            background-color: #007bff;
+        }
+        .login-button:hover {
+            background-color: #0056b3;
+        }
+        .onboard-button {
+            background-color: #28a745;
+        }
+        .onboard-button:hover {
+            background-color: #218838;
+        }
+        .logout-button {
+            background-color: #dc3545;
+        }
+        .logout-button:hover {
+            background-color: #c82333;
+        }
+        #error-message {
+            color: #dc3545;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        #success-message {
+            color: #28a745;
+            margin-bottom: 1rem;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2 style="text-align: center; margin-bottom: 2rem;">Driver Onboarding Login</h2>
+        <div id="error-message"></div>
+        <div id="success-message"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+            <button type="submit" class="button login-button">Login</button>
+        </form>
+
+        <div id="nav-buttons" class="nav-buttons">
+            <div class="button-group">
+                <form id="onfleetForm" method="GET" action="/onboard-onfleet">
+                    <button type="submit" class="button onboard-button">Go to Onfleet</button>
+                </form>
+                <form id="stitchForm" method="GET" action="/onboard-stitch">
+                    <button type="submit" class="button onboard-button">Go to Stitch</button>
+                </form>
+                <button onclick="handleLogout()" class="button logout-button">Logout</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const onfleetForm = document.getElementById('onfleetForm');
+        const stitchForm = document.getElementById('stitchForm');
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        const navButtons = document.getElementById('nav-buttons');
+
+        // Handle form submissions with auth check
+        function handleFormSubmit(e, form) {
+            e.preventDefault();
+            
+            fetch('/api/auth/verify', {
+                method: 'GET',
+                credentials: 'include'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    form.submit();
+                } else {
+                    errorMessage.textContent = 'Please login first';
+                    errorMessage.style.display = 'block';
+                    successMessage.style.display = 'none';
+                    navButtons.style.display = 'none';
+                    loginForm.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Navigation error:', error);
+                errorMessage.textContent = 'Error verifying authentication';
+                errorMessage.style.display = 'block';
+            });
+        }
+
+        // Add submit handlers to forms
+        onfleetForm.addEventListener('submit', (e) => handleFormSubmit(e, onfleetForm));
+        stitchForm.addEventListener('submit', (e) => handleFormSubmit(e, stitchForm));
+
+        // Handle logout
+        async function handleLogout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'GET',
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    // Show login form and hide buttons
+                    loginForm.style.display = 'block';
+                    navButtons.style.display = 'none';
+                    successMessage.style.display = 'none';
+                    errorMessage.style.display = 'none';
+                    loginForm.reset();
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                errorMessage.textContent = 'Error during logout';
+                errorMessage.style.display = 'block';
+            }
+        }
+
+        // Handle login form submission
+        loginForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: formData.get('username'),
+                        password: formData.get('password')
+                    }),
+                    credentials: 'include'
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    // Hide error message and login form
+                    errorMessage.style.display = 'none';
+                    loginForm.style.display = 'none';
+                    
+                    // Show success message and navigation buttons
+                    successMessage.textContent = 'Login successful! Choose where to go:';
+                    successMessage.style.display = 'block';
+                    navButtons.style.display = 'block';
+                } else {
+                    // Show error message
+                    errorMessage.textContent = data.message || 'Invalid username or password';
+                    errorMessage.style.display = 'block';
+                    successMessage.style.display = 'none';
+                    navButtons.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = 'An error occurred during login';
+                errorMessage.style.display = 'block';
+                successMessage.style.display = 'none';
+                navButtons.style.display = 'none';
+            }
+        });
+
+        // Check if already logged in on page load
+        fetch('/api/auth/verify', {
+            method: 'GET',
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Hide login form and show navigation buttons
+                loginForm.style.display = 'none';
+                successMessage.textContent = 'You are logged in! Choose where to go:';
+                successMessage.style.display = 'block';
+                navButtons.style.display = 'block';
+            } else {
+                // Show login form
+                loginForm.style.display = 'block';
+                navButtons.style.display = 'none';
+            }
+        })
+        .catch(() => {
+            // Show login form on error
+            loginForm.style.display = 'block';
+            navButtons.style.display = 'none';
+        });
+    </script>
+</body>
+</html>

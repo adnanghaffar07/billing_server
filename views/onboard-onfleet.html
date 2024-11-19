@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onfleet Driver Onboarding</title>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            padding: 2rem 0;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 1rem;
+        }
+        .name-group, .address-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .name-group .form-group, .address-group .form-group {
+            flex: 1 1 200px;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+        }
+        label.required::after {
+            content: " *";
+            color: #dc3545;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        input:invalid, select:invalid {
+            border-color: #dc3545;
+        }
+        .error-message {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            display: none;
+        }
+        input:invalid + .error-message {
+            display: block;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 1rem;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .section-title {
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            color: #555;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 0.5rem;
+        }
+        .checkbox-group {
+            margin-top: 1rem;
+        }
+        .checkbox-group label {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+        .select2-container {
+            width: 100% !important;
+        }
+        .select2-container--default .select2-selection--multiple {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 4px;
+        }
+        .select2-container--default.select2-container--focus .select2-selection--multiple {
+            border-color: #007bff;
+            outline: 0;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            background-color: #007bff;
+            border: 1px solid #0056b3;
+            color: white;
+            border-radius: 4px;
+            padding: 2px 8px;
+            margin: 2px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            color: white;
+            margin-right: 5px;
+        }
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+            color: #fff;
+            opacity: 0.8;
+        }
+        .select2-container--default .select2-search--inline .select2-search__field {
+            margin-top: 0;
+        }
+        .select2-dropdown {
+            border: 1px solid #ddd;
+        }
+        .select2-results__option {
+            padding: 8px 12px;
+        }
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: #007bff;
+        }
+        .logout-container {
+            text-align: right;
+            margin-top: 1rem;
+        }
+        .logout-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-button:hover {
+            background-color: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Onfleet Driver Onboarding</h1>
+        <form id="onfleetForm" action="/api/onboard/onfleet" method="POST" onsubmit="return validateForm(event)">
+            <div class="name-group">
+                <div class="form-group">
+                    <label for="firstName" class="required">First Name</label>
+                    <input type="text" id="firstName" name="firstName" required pattern="[A-Za-z\s-]+" title="Please enter a valid first name">
+                    <div class="error-message">Please enter a valid first name</div>
+                </div>
+                <div class="form-group">
+                    <label for="lastName" class="required">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" required pattern="[A-Za-z\s-]+" title="Please enter a valid last name">
+                    <div class="error-message">Please enter a valid last name</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="displayName">Display Name (Optional)</label>
+                <input type="text" id="displayName" name="displayName">
+                <div class="error-message">Please enter a valid display name</div>
+            </div>
+
+            <div class="form-group">
+                <label for="phone" class="required">Phone Number</label>
+                <input type="tel" id="phone" name="phone" required pattern="^\+?1?\d{10,}$" title="Please enter a valid phone number">
+                <div class="error-message">Please enter a valid phone number</div>
+            </div>
+
+            <div class="form-group">
+                <label for="teams" class="required">Teams</label>
+                <select id="teams" name="teams[]" class="select2-multiple" multiple="multiple" required>
+                    <option value="">Loading teams...</option>
+                </select>
+                <div class="error-message">Please select at least one team</div>
+            </div>
+
+            <h3 class="section-title">Vehicle Information (Optional)</h3>
+            <div class="checkbox-group">
+                <label>
+                    <input type="checkbox" id="hasVehicle" name="hasVehicle">
+                    Driver has a vehicle
+                </label>
+            </div>
+
+            <div id="vehicleFields" style="display: none;">
+                <div class="form-group">
+                    <label for="vehicleType">Vehicle Type</label>
+                    <select id="vehicleType" name="vehicle[type]">
+                        <option value="CAR">Car</option>
+                        <option value="MOTORCYCLE">Motorcycle</option>
+                        <option value="BICYCLE">Bicycle</option>
+                        <option value="TRUCK">Truck</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleDescription">Vehicle Description</label>
+                    <input type="text" id="vehicleDescription" name="vehicle[description]" placeholder="e.g., Red Toyota Camry">
+                </div>
+
+                <div class="form-group">
+                    <label for="licensePlate">License Plate</label>
+                    <input type="text" id="licensePlate" name="vehicle[licensePlate]">
+                </div>
+
+                <div class="form-group">
+                    <label for="vehicleColor">Vehicle Color</label>
+                    <input type="text" id="vehicleColor" name="vehicle[color]">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="capacity">Capacity (Optional)</label>
+                <input type="number" id="capacity" name="capacity" min="0" step="1">
+                <div class="error-message">Please enter a valid capacity number</div>
+            </div>
+
+            <button type="submit" class="button">Submit</button>
+        </form>
+        <a href="/onboard" class="back-link">Back to Onboarding Options</a>
+        <div class="logout-container">
+            <button onclick="handleLogout()" class="logout-button">Logout</button>
+        </div>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            $('.select2-multiple').select2({
+                placeholder: 'Select teams',
+                allowClear: true,
+                closeOnSelect: false,
+                width: '100%'
+            });
+        });
+
+        async function fetchTeams() {
+            try {
+                const response = await fetch('/api/onfleet/teams');
+                const teams = await response.json();
+                const teamsSelect = document.getElementById('teams');
+                teamsSelect.innerHTML = ''; // Clear loading option
+                
+                teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    teamsSelect.appendChild(option);
+                });
+
+                // Refresh Select2 after adding options
+                $('.select2-multiple').trigger('change');
+            } catch (error) {
+                console.error('Error fetching teams:', error);
+                const teamsSelect = document.getElementById('teams');
+                teamsSelect.innerHTML = '<option value="">Error loading teams</option>';
+            }
+        }
+
+        document.getElementById('hasVehicle').addEventListener('change', function() {
+            document.getElementById('vehicleFields').style.display = this.checked ? 'block' : 'none';
+        });
+
+        function validateForm(event) {
+            const form = event.target;
+            const firstName = form.firstName.value.trim();
+            const lastName = form.lastName.value.trim();
+            const phone = form.phone.value.trim();
+            const teams = $('#teams').val(); // Use jQuery to get selected values
+            
+            let isValid = true;
+            const errors = [];
+
+            if (!firstName) {
+                errors.push('First name is required');
+                isValid = false;
+            }
+
+            if (!lastName) {
+                errors.push('Last name is required');
+                isValid = false;
+            }
+
+            if (!phone) {
+                errors.push('Phone number is required');
+                isValid = false;
+            } else if (!/^\+?1?\d{10,}$/.test(phone)) {
+                errors.push('Invalid phone number format');
+                isValid = false;
+            }
+
+            if (!teams || teams.length === 0) {
+                errors.push('Please select at least one team');
+                isValid = false;
+            }
+
+            if (!isValid) {
+                event.preventDefault();
+                alert(errors.join('\n'));
+            }
+
+            return isValid;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/auth/verify')
+                .catch(() => {
+                    window.location.href = '/login';
+                });
+            fetchTeams();
+        });
+
+        function handleLogout() {
+            fetch('/api/auth/logout')
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                });
+        }
+    </script>
+</body>
+</html>
