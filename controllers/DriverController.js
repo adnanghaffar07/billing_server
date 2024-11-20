@@ -116,7 +116,7 @@ export const driver_assigned = async (req, res) => {
 
     const SLACK_CHANNEL = process.env.ASSIGNED_CHANNEL_ID;
     await sendSlackMessage({
-      SLACK_CHANNEL,
+      channel:SLACK_CHANNEL,
       text: message.text,
       blocks: message.blocks,
     });
