@@ -2,7 +2,9 @@ import { sendSlackMessage } from "../utils/slackConfig.js";
 import { findDriverById } from "../utils/dragonflyConfig.js";
 import { getOrderDetailsWebhook } from "../utils/webhookUtils.js";
 import { formatWaypointTime } from "../utils/timeUtils.js";
-import { it } from "date-fns/locale";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 export const driver_assigned = async (req, res) => {
   try {

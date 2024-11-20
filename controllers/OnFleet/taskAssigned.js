@@ -8,6 +8,9 @@ import {
   dateFormatter,
   shortDateFormatter,
 } from "../../utils/dateFormatter.js";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const handleTaskAssigned = async (req, res) => {
   try {
