@@ -82,7 +82,7 @@ const handleTaskAssigned = async (req, res) => {
               elements: [
                 {
                   type: "text",
-                  text: `Task ShortId: ${taskShortId}\nAssigned By: ${adminName}\nPickup Business name: ${businessName}\nPickup Business Address: ${businessAddress}\nOrder Created Date: ${orderCreatedDateFormatted}\nDate of Delivery: ${formattedDeliveryDate}\nDriver Name: ${driverName}\nDriver Phone No: ${driverPhoneNo}"`,
+                  text: `Task ShortId: ${taskShortId}\nAssigned By: ${adminName}\nPickup Business name: ${businessName}\nPickup Business Address: ${businessAddress}\nOrder Created Date: ${orderCreatedDateFormatted}\nDate of Delivery: ${formattedDeliveryDate}\nDriver Name: ${driverName}\nDriver Phone No: ${driverPhoneNo}`,
                   style: {},
                 },
               ],

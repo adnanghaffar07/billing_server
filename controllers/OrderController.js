@@ -1,7 +1,7 @@
 import {
   sendErrorWebhook,
   sendOrderWebhook,
-  sendNotificationWebhook,
+  // sendNotificationWebhook,
   sendStatusWebhook,
 } from "../utils/webhookUtils.js";
 
@@ -177,9 +177,10 @@ export const order_details_change = async (req, res) => {
       orderId,
       ...body,
     };
-    await sendNotificationWebhook(payload);
+    // await sendNotificationWebhook(payload);
     res.status(200).json({
       status: "success",
+      message: payload,
     });
   } catch (err) {
     res.status(500).json({ status: "fail", message: err.message });

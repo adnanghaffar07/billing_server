@@ -44,10 +44,22 @@ export const sendOrderWebhook = async (orderData) => {
     }
 };
 
-export const sendNotificationWebhook = async (notificationData) => {
+// export const sendNotificationWebhook = async (notificationData) => {
+//     try {
+//         await axios.post(webhookUrls.notification, notificationData);
+//         console.log("Notification sent to webhook successfully.");
+//     } catch (error) {
+//         console.error(
+//             "Failed to send notification to webhook:",
+//             error.message
+//         );
+//     }
+// };
+export const getOrderDetailsWebhook = async (orderId) => {
     try {
-        await axios.post(webhookUrls.notification, notificationData);
+       const response = await axios.post(webhookUrls.notification, {order: orderId});
         console.log("Notification sent to webhook successfully.");
+        return response.data
     } catch (error) {
         console.error(
             "Failed to send notification to webhook:",
