@@ -1,11 +1,6 @@
 import axios from 'axios';
 import { webhookUrls } from '../config/urls.js';
 
-// Webhook URLs
-// export const webhookUrl = "https://hook.us1.make.com/guukybx41137y39coqcly1tl4fo46yyl";
-// export const webhookUrl_2 = "https://hook.us1.make.com/n6tzxxn45ezrws47hmufcdazc47vn6aa";
-// export const webhookUrl_3 = "https://hook.us1.make.com/nh1q6e4pkj01mg79a2y1502dwgb8rke2";
-
 export const sendErrorWebhook = async (errorMessage) => {
     try {
         await axios.post(webhookUrls.error, {

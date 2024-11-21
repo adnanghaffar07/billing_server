@@ -58,7 +58,7 @@ const handleTaskDeletion = async (req, res) => {
                 },
                 {
                   type: "text",
-                  text: `  onFleet Task Deleted  `,
+                  text: `  onFleet Task Deleted (${payload.data.task.pickupTask === true ? "Pickup" : "DropOff"})`,
                   style: {
                     bold: true,
                   },
@@ -75,7 +75,7 @@ const handleTaskDeletion = async (req, res) => {
               elements: [
                 {
                   type: "text",
-                  text: `Task ShortId: ${taskShortId}\nAssigned By: ${adminName}\nPickup Business name: ${businessName}\nPickup Business Address: ${businessAddress}\nDate of Delivery: ${formattedDeliveryDate}`,
+                  text: `Task ShortId: ${taskShortId}\nDeleted By: ${adminName}\nPickup Business name: ${businessName}\nPickup Business Address: ${businessAddress}\nDate of Delivery: ${formattedDeliveryDate}`,
                   style: {},
                 },
               ],

@@ -18,6 +18,9 @@ import {
   verifyAuth,
 } from "../middleware/auth.js";
 import jwt from "jsonwebtoken";
+import { handleSlackInteractions } from "../controllers/SlackInteractionsController.js";
+import { onFleetRemoveTipsFromMetaData } from "../controllers/makeUtilsControllers/onFleetRemoveMetaData.js";
+import { handleTaskMock } from "../controllers/mocksFunc/testUserInteractions.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -104,6 +107,16 @@ router
     res.status(200).send(req.query.check);
   })
   .post(handleTaskDeletion);
+
+/** Slack Interactions Route */
+router.post("/slack/interactions", handleSlackInteractions);
+router.get("/slack/mockTests", handleTaskMock);
+
+
+/** OnFleet Remove Tips Route */
+router.route("/onfleet/removeTips").get((req, res) => {
+  res.status(200).send(req.query.check);
+}).post(onFleetRemoveTipsFromMetaData);
 
 /** OnFleet Task Assigned Route */
 router
