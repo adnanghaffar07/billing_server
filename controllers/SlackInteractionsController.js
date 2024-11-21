@@ -25,26 +25,27 @@ export const handleSlackInteractions = async (req, res) => {
           throw new Error('Invalid user data in payload');
         }
 
-        // Find the last divider and action block indices
+        // Keep all blocks until the last divider
         const lastDividerIndex = message.blocks
           .map((block, index) => block.type === "divider" ? index : -1)
           .filter(index => index !== -1)
           .pop();
 
-        const actionBlockIndex = message.blocks.findIndex(block => 
-          block.type === "actions" && 
-          block.elements?.[0]?.action_id === "assign_task"
-        );
-
-        if (lastDividerIndex === -1 || actionBlockIndex === -1) {
+        if (lastDividerIndex === -1) {
           throw new Error('Message structure is invalid');
         }
 
-        // Create new blocks array with original content
-        const newBlocks = [...message.blocks];
+        // Keep only the blocks before the last divider
+        const newBlocks = message.blocks.slice(0, lastDividerIndex + 1);
 
-        // Remove the action block and its following divider
-        newBlocks.splice(actionBlockIndex, 2);
+        // Get current timestamp in a readable format
+        const timestamp = new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true
+        });
 
         // Create assignment section
         const assignmentSection = {
@@ -56,7 +57,7 @@ export const handleSlackInteractions = async (req, res) => {
               elements: [
                 {
                   type: "text",
-                  text: "👤 Assigned to: ",
+                  text: "👤 Currently assigned to: ",
                   style: {
                     bold: true
                   }
@@ -69,6 +70,45 @@ export const handleSlackInteractions = async (req, res) => {
             }
           ]
         };
+
+        // Create history section if it doesn't exist or get existing one
+        let historySection = message.blocks.find(block => 
+          block.type === "rich_text" && 
+          block.block_id?.startsWith('history_')
+        );
+
+        if (!historySection) {
+          historySection = {
+            type: "rich_text",
+            block_id: `history_${Date.now()}`,
+            elements: [
+              {
+                type: "rich_text_section",
+                elements: [
+                  {
+                    type: "text",
+                    text: "📝 Assignment History:\n",
+                    style: {
+                      bold: true
+                    }
+                  }
+                ]
+              }
+            ]
+          };
+        }
+
+        // Add new assignment to history
+        historySection.elements[0].elements.push(
+          {
+            type: "text",
+            text: `\n${timestamp} - Assigned to `
+          },
+          {
+            type: "user",
+            user_id: user.id
+          }
+        );
 
         // Create unassign button
         const unassignButton = {
@@ -89,18 +129,15 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
-        // Add divider, assignment section, and unassign button
+        // Add all sections
         newBlocks.push(
-          {
-            type: "divider",
-            block_id: `div_${Date.now()}`
-          },
           assignmentSection,
           unassignButton,
           {
             type: "divider",
-            block_id: `div_${Date.now() + 1}`
-          }
+            block_id: `div_history_${Date.now()}`
+          },
+          historySection
         );
 
         // Update the message
@@ -113,23 +150,46 @@ export const handleSlackInteractions = async (req, res) => {
         break;
 
       case "unassign_task":
-        // Find indices of assignment section and unassign button
-        const assignmentIndex = message.blocks.findIndex(block => 
-          block.type === "rich_text" && 
-          block.elements?.[0]?.elements?.some(el => 
-            el.type === "text" && el.text.includes("Assigned to:")
-          )
-        );
+        // Keep all blocks until the last divider
+        const resetIndex = message.blocks
+          .map((block, index) => block.type === "divider" ? index : -1)
+          .filter(index => index !== -1)
+          .pop();
 
-        if (assignmentIndex === -1) {
-          throw new Error('Assignment section not found');
+        if (resetIndex === -1) {
+          throw new Error('Message structure is invalid');
         }
 
-        // Create new blocks array without assignment section and unassign button
-        const resetBlocks = message.blocks.filter((block, index) => 
-          index < assignmentIndex - 1 || // Before the divider preceding assignment
-          index > assignmentIndex + 2    // After the divider following unassign button
+        // Keep only the blocks before the last divider
+        const resetBlocks = message.blocks.slice(0, resetIndex + 1);
+
+        // Get current timestamp
+        const unassignTimestamp = new Date().toLocaleString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: true
+        });
+
+        // Get existing history section
+        let existingHistory = message.blocks.find(block => 
+          block.type === "rich_text" && 
+          block.block_id?.startsWith('history_')
         );
+
+        if (existingHistory) {
+          existingHistory.elements[0].elements.push(
+            {
+              type: "text",
+              text: `\n${unassignTimestamp} - Unassigned by `
+            },
+            {
+              type: "user",
+              user_id: user.id
+            }
+          );
+        }
 
         // Create assign button
         const assignButton = {
@@ -150,17 +210,14 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
-        // Add divider and assign button
+        // Add sections
         resetBlocks.push(
-          {
-            type: "divider",
-            block_id: `div_${Date.now()}`
-          },
           assignButton,
           {
             type: "divider",
-            block_id: `div_${Date.now() + 1}`
-          }
+            block_id: `div_history_${Date.now()}`
+          },
+          existingHistory
         );
 
         // Update the message
