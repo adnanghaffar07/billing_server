@@ -7,7 +7,7 @@ dotenv.config();
 export const handleSlackInteractions = async (req, res) => {
   try {
     const payload = JSON.parse(req.body.payload);
-    const { type, user, actions, container, response_url } = payload;
+    const { type, user, actions, container, message } = payload;
 
     console.log(JSON.stringify(payload, null, 2), "This is payload");
 
@@ -25,36 +25,55 @@ export const handleSlackInteractions = async (req, res) => {
           throw new Error('Invalid user data in payload');
         }
 
-        // Create blocks for the message
-        const blocks = [
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: "*Task Assignment*"
-            }
-          },
-          {
-            type: "section",
-            text: {
-              type: "mrkdwn",
-              text: `*Assigned to:* <@${user.id}>`
-            }
-          }
-        ];
+        // Find the last divider and action block indices
+        const lastDividerIndex = message.blocks
+          .map((block, index) => block.type === "divider" ? index : -1)
+          .filter(index => index !== -1)
+          .pop();
 
-        // Add profile image if available
-        if (user.profile?.image_72) {
-          blocks[1].accessory = {
-            type: "image",
-            image_url: user.profile.image_72,
-            alt_text: user.name
-          };
+        const actionBlockIndex = message.blocks.findIndex(block => 
+          block.type === "actions" && 
+          block.elements?.[0]?.action_id === "assign_task"
+        );
+
+        if (lastDividerIndex === -1 || actionBlockIndex === -1) {
+          throw new Error('Message structure is invalid');
         }
 
-        // Add unassign button
-        blocks.push({
+        // Create new blocks array with original content
+        const newBlocks = [...message.blocks];
+
+        // Remove the action block and its following divider
+        newBlocks.splice(actionBlockIndex, 2);
+
+        // Create assignment section
+        const assignmentSection = {
+          type: "rich_text",
+          block_id: `assign_${Date.now()}`,
+          elements: [
+            {
+              type: "rich_text_section",
+              elements: [
+                {
+                  type: "text",
+                  text: "👤 Assigned to: ",
+                  style: {
+                    bold: true
+                  }
+                },
+                {
+                  type: "user",
+                  user_id: user.id
+                }
+              ]
+            }
+          ]
+        };
+
+        // Create unassign button
+        const unassignButton = {
           type: "actions",
+          block_id: `unassign_${Date.now()}`,
           elements: [
             {
               type: "button",
@@ -68,59 +87,88 @@ export const handleSlackInteractions = async (req, res) => {
               action_id: "unassign_task"
             }
           ]
-        });
-
-        const newMessage = {
-          text: `Task assigned to ${user.name}`,
-          blocks: blocks
         };
 
-        // Update the original message
-        await slack.chat.update({
-          channel: container.channel_id,
-          ts: container.message_ts,
-          text: newMessage.text,
-          blocks: newMessage.blocks
-        });
-        break;
-
-      case "unassign_task":
-        // Restore the original assign button
-        const resetMessage = {
-          text: "Task available for assignment",
-          blocks: [
-            {
-              type: "section",
-              text: {
-                type: "mrkdwn",
-                text: "*Task Assignment*"
-              }
-            },
-            {
-              type: "actions",
-              elements: [
-                {
-                  type: "button",
-                  text: {
-                    type: "plain_text",
-                    text: "Assign to me",
-                    emoji: true
-                  },
-                  style: "primary",
-                  value: taskId,
-                  action_id: "assign_task"
-                }
-              ]
-            }
-          ]
-        };
+        // Add divider, assignment section, and unassign button
+        newBlocks.push(
+          {
+            type: "divider",
+            block_id: `div_${Date.now()}`
+          },
+          assignmentSection,
+          unassignButton,
+          {
+            type: "divider",
+            block_id: `div_${Date.now() + 1}`
+          }
+        );
 
         // Update the message
         await slack.chat.update({
           channel: container.channel_id,
           ts: container.message_ts,
-          text: resetMessage.text,
-          blocks: resetMessage.blocks
+          blocks: newBlocks,
+          text: message.text
+        });
+        break;
+
+      case "unassign_task":
+        // Find indices of assignment section and unassign button
+        const assignmentIndex = message.blocks.findIndex(block => 
+          block.type === "rich_text" && 
+          block.elements?.[0]?.elements?.some(el => 
+            el.type === "text" && el.text.includes("Assigned to:")
+          )
+        );
+
+        if (assignmentIndex === -1) {
+          throw new Error('Assignment section not found');
+        }
+
+        // Create new blocks array without assignment section and unassign button
+        const resetBlocks = message.blocks.filter((block, index) => 
+          index < assignmentIndex - 1 || // Before the divider preceding assignment
+          index > assignmentIndex + 2    // After the divider following unassign button
+        );
+
+        // Create assign button
+        const assignButton = {
+          type: "actions",
+          block_id: `assign_${Date.now()}`,
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Assign to me",
+                emoji: true
+              },
+              style: "primary",
+              value: taskId,
+              action_id: "assign_task"
+            }
+          ]
+        };
+
+        // Add divider and assign button
+        resetBlocks.push(
+          {
+            type: "divider",
+            block_id: `div_${Date.now()}`
+          },
+          assignButton,
+          {
+            type: "divider",
+            block_id: `div_${Date.now() + 1}`
+          }
+        );
+
+        // Update the message
+        await slack.chat.update({
+          channel: container.channel_id,
+          ts: container.message_ts,
+          blocks: resetBlocks,
+          text: message.text
         });
         break;
 
