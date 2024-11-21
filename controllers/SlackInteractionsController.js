@@ -25,18 +25,18 @@ export const handleSlackInteractions = async (req, res) => {
           throw new Error('Invalid user data in payload');
         }
 
-        // Keep all blocks until the last divider
-        const lastDividerIndex = message.blocks
-          .map((block, index) => block.type === "divider" ? index : -1)
-          .filter(index => index !== -1)
-          .pop();
+        // Find the assign button block index
+        const assignButtonIndex = message.blocks.findIndex(block => 
+          block.type === "actions" && 
+          block.elements?.[0]?.action_id === "assign_task"
+        );
 
-        if (lastDividerIndex === -1) {
-          throw new Error('Message structure is invalid');
+        if (assignButtonIndex === -1) {
+          throw new Error('Assign button not found');
         }
 
-        // Keep only the blocks before the last divider
-        const newBlocks = message.blocks.slice(0, lastDividerIndex + 1);
+        // Keep blocks before the assign button
+        const newBlocks = message.blocks.slice(0, assignButtonIndex);
 
         // Get current timestamp in a readable format
         const timestamp = new Date().toLocaleString('en-US', {
@@ -96,6 +96,9 @@ export const handleSlackInteractions = async (req, res) => {
               }
             ]
           };
+        } else {
+          // If history section exists, remove it from newBlocks as we'll add it back later
+          newBlocks.splice(newBlocks.findIndex(block => block.block_id === historySection.block_id), 1);
         }
 
         // Add new assignment to history
@@ -150,18 +153,25 @@ export const handleSlackInteractions = async (req, res) => {
         break;
 
       case "unassign_task":
-        // Keep all blocks until the last divider
-        const resetIndex = message.blocks
-          .map((block, index) => block.type === "divider" ? index : -1)
-          .filter(index => index !== -1)
-          .pop();
+        // Find the unassign button and assignment section
+        const unassignButtonIndex = message.blocks.findIndex(block => 
+          block.type === "actions" && 
+          block.elements?.[0]?.action_id === "unassign_task"
+        );
 
-        if (resetIndex === -1) {
-          throw new Error('Message structure is invalid');
+        const assignmentSectionIndex = message.blocks.findIndex(block =>
+          block.type === "rich_text" &&
+          block.elements?.[0]?.elements?.some(el => 
+            el.type === "text" && el.text.includes("Currently assigned to:")
+          )
+        );
+
+        if (unassignButtonIndex === -1 || assignmentSectionIndex === -1) {
+          throw new Error('Required blocks not found');
         }
 
-        // Keep only the blocks before the last divider
-        const resetBlocks = message.blocks.slice(0, resetIndex + 1);
+        // Keep blocks before the assignment section
+        const resetBlocks = message.blocks.slice(0, assignmentSectionIndex);
 
         // Get current timestamp
         const unassignTimestamp = new Date().toLocaleString('en-US', {
@@ -179,6 +189,12 @@ export const handleSlackInteractions = async (req, res) => {
         );
 
         if (existingHistory) {
+          // Remove existing history from resetBlocks if it exists
+          const historyIndex = resetBlocks.findIndex(block => block.block_id === existingHistory.block_id);
+          if (historyIndex !== -1) {
+            resetBlocks.splice(historyIndex, 1);
+          }
+
           existingHistory.elements[0].elements.push(
             {
               type: "text",
