@@ -18,3 +18,15 @@ export const shortDateFormatter = (date) => {
         year: "numeric"
     });
 }
+
+export const getESTTimestamp = () => {
+    return new Date().toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: true,
+      timeZoneName: 'short'
+    });
+  };

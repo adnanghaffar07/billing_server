@@ -1,6 +1,7 @@
 import { slack, sendSlackMessage } from "../utils/slackConfig.js";
 import dotenv from "dotenv";
 import { sendErrorWebhook } from "../utils/webhookUtils.js";
+import { getESTTimestamp } from "../utils/dateFormatter.js";
 
 dotenv.config();
 
@@ -38,14 +39,8 @@ export const handleSlackInteractions = async (req, res) => {
         // Keep blocks before the assign button
         const newBlocks = message.blocks.slice(0, assignButtonIndex);
 
-        // Get current timestamp in a readable format
-        const timestamp = new Date().toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: true
-        });
+        // Get current EST timestamp
+        const timestamp = getESTTimestamp();
 
         // Create assignment section
         const assignmentSection = {
@@ -173,14 +168,8 @@ export const handleSlackInteractions = async (req, res) => {
         // Keep blocks before the assignment section
         const resetBlocks = message.blocks.slice(0, assignmentSectionIndex);
 
-        // Get current timestamp
-        const unassignTimestamp = new Date().toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: true
-        });
+        // Get current EST timestamp
+        const unassignTimestamp = getESTTimestamp();
 
         // Get existing history section
         let existingHistory = message.blocks.find(block => 
