@@ -111,6 +111,25 @@ export const driver_assigned = async (req, res) => {
         {
           type: "divider",
         },
+        {
+          type: "actions",
+          elements: [
+            {
+              type: "button",
+              text: {
+                type: "plain_text",
+                text: "Assign to me",
+                emoji: true,
+              },
+              style: "primary",
+              value: orderId,
+              action_id: "assign_task",
+            },
+          ],
+        },
+        {
+          type: "divider",
+        },
       ],
     };
 
