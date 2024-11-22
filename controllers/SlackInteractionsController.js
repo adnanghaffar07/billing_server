@@ -7,58 +7,6 @@ dotenv.config();
 
 const MAX_HISTORY_ENTRIES = 5; // Limit history to last 5 entries
 
-const createHistorySection = (existingHistory = null, newEntry = null) => {
-  let elements = [
-    {
-      type: "text",
-      text: "📝 Assignment History:\n",
-      style: {
-        bold: true
-      }
-    }
-  ];
-
-  // Get existing entries if any
-  if (existingHistory) {
-    const historyEntries = existingHistory.elements[0].elements
-      .slice(1) // Skip the header
-      .reduce((acc, curr, i, arr) => {
-        if (i % 2 === 0) {
-          acc.push([curr, arr[i + 1]].filter(Boolean));
-        }
-        return acc;
-      }, []);
-
-    elements.push(...historyEntries.flat());
-  }
-
-  // Add new entry if provided
-  if (newEntry) {
-    elements.push(...newEntry);
-  }
-
-  // Keep only the last MAX_HISTORY_ENTRIES
-  const entries = elements.slice(1).reduce((acc, curr, i, arr) => {
-    if (i % 2 === 0) {
-      acc.push([curr, arr[i + 1]].filter(Boolean));
-    }
-    return acc;
-  }, []);
-
-  const trimmedEntries = entries.slice(-MAX_HISTORY_ENTRIES).flat();
-
-  return {
-    type: "rich_text",
-    block_id: `history_${Date.now()}`,
-    elements: [
-      {
-        type: "rich_text_section",
-        elements: [elements[0], ...trimmedEntries]
-      }
-    ]
-  };
-};
-
 export const handleSlackInteractions = async (req, res) => {
   try {
     const payload = JSON.parse(req.body.payload);
@@ -71,32 +19,31 @@ export const handleSlackInteractions = async (req, res) => {
     const action = actions[0];
     const { action_id, value: taskId } = action;
 
-    // Keep original message blocks (excluding assignment-related blocks)
-    const originalBlocks = message.blocks.filter(block => 
-      !block.block_id?.includes('assign_') && 
-      !block.block_id?.includes('history_') && 
-      !block.block_id?.includes('div_') &&
-      !block.type.includes('actions')
-    );
+    // Extract the initial message blocks (everything before the first divider)
+    const dividerIndex = message.blocks.findIndex(block => block.type === "divider");
+    const initialMessageBlocks = dividerIndex !== -1 
+      ? message.blocks.slice(0, dividerIndex)
+      : message.blocks.filter(block => 
+          !block.block_id?.includes('assign_') && 
+          !block.block_id?.includes('history_') && 
+          !block.type.includes('actions'));
 
-    // Get existing history entries if any
-    const existingHistory = message.blocks.find(block => 
+    // Get existing history if any
+    const historyBlock = message.blocks.find(block => 
       block.type === "rich_text" && 
       block.block_id?.startsWith('history_')
     );
 
+    // Parse existing history entries
     let historyEntries = [];
-    if (existingHistory && existingHistory.elements[0]?.elements) {
-      // Get all entries after the header
-      historyEntries = existingHistory.elements[0].elements
-        .slice(1) // Skip header
-        .reduce((acc, curr, i, arr) => {
-          if (i % 2 === 0 && arr[i + 1]) {
-            acc.push([curr, arr[i + 1]]);
-          }
-          return acc;
-        }, [])
-        .flat();
+    if (historyBlock && historyBlock.elements[0]?.elements) {
+      const elements = historyBlock.elements[0].elements;
+      // Skip the header and process pairs of entries
+      for (let i = 1; i < elements.length; i += 2) {
+        if (elements[i] && elements[i + 1]) {
+          historyEntries.push(elements[i], elements[i + 1]);
+        }
+      }
     }
 
     switch (action_id) {
@@ -132,7 +79,7 @@ export const handleSlackInteractions = async (req, res) => {
         };
 
         // Add new assignment to history
-        historyEntries.push(
+        const newAssignEntries = [
           {
             type: "text",
             text: `\n${timestamp} - Assigned to `
@@ -141,10 +88,10 @@ export const handleSlackInteractions = async (req, res) => {
             type: "user",
             user_id: user.id
           }
-        );
-
-        // Keep only last 5 entries
-        historyEntries = historyEntries.slice(-10); // Keep last 5 pairs (10 elements)
+        ];
+        
+        // Combine and limit history entries
+        historyEntries = [...historyEntries, ...newAssignEntries].slice(-10); // Keep last 5 pairs
 
         // Create history section
         const historySection = {
@@ -188,7 +135,7 @@ export const handleSlackInteractions = async (req, res) => {
 
         // Construct new blocks array
         const newBlocks = [
-          ...originalBlocks,
+          ...initialMessageBlocks,
           {
             type: "divider",
             block_id: `div_${Date.now()}`
@@ -211,7 +158,7 @@ export const handleSlackInteractions = async (req, res) => {
         const unassignTimestamp = getESTTimestamp();
 
         // Add unassignment to history
-        historyEntries.push(
+        const newUnassignEntries = [
           {
             type: "text",
             text: `\n${unassignTimestamp} - Unassigned by `
@@ -220,10 +167,10 @@ export const handleSlackInteractions = async (req, res) => {
             type: "user",
             user_id: user.id
           }
-        );
+        ];
 
-        // Keep only last 5 entries
-        historyEntries = historyEntries.slice(-10); // Keep last 5 pairs (10 elements)
+        // Combine and limit history entries
+        historyEntries = [...historyEntries, ...newUnassignEntries].slice(-10);
 
         // Create updated history section
         const updatedHistory = {
@@ -267,7 +214,7 @@ export const handleSlackInteractions = async (req, res) => {
 
         // Construct new blocks array
         const resetBlocks = [
-          ...originalBlocks,
+          ...initialMessageBlocks,
           {
             type: "divider",
             block_id: `div_${Date.now()}`
