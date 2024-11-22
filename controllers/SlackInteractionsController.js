@@ -5,12 +5,12 @@ import { getESTTimestamp } from "../utils/dateFormatter.js";
 
 dotenv.config();
 
-const MAX_HISTORY_ENTRIES = 5; // Limit history to last 5 entries
-
 export const handleSlackInteractions = async (req, res) => {
   try {
     const payload = JSON.parse(req.body.payload);
     const { type, user, actions, container, message } = payload;
+
+    console.log(JSON.stringify(payload, null, 2), "This is payload");
 
     if (type !== "block_actions") {
       return res.status(400).json({ message: "Unsupported interaction type" });
@@ -19,41 +19,29 @@ export const handleSlackInteractions = async (req, res) => {
     const action = actions[0];
     const { action_id, value: taskId } = action;
 
-    // Extract the initial message blocks (everything before the first divider)
-    const dividerIndex = message.blocks.findIndex(block => block.type === "divider");
-    const initialMessageBlocks = dividerIndex !== -1 
-      ? message.blocks.slice(0, dividerIndex)
-      : message.blocks.filter(block => 
-          !block.block_id?.includes('assign_') && 
-          !block.block_id?.includes('history_') && 
-          !block.type.includes('actions'));
-
-    // Get existing history if any
-    const historyBlock = message.blocks.find(block => 
-      block.type === "rich_text" && 
-      block.block_id?.startsWith('history_')
-    );
-
-    // Parse existing history entries
-    let historyEntries = [];
-    if (historyBlock && historyBlock.elements[0]?.elements) {
-      const elements = historyBlock.elements[0].elements;
-      // Skip the header and process pairs of entries
-      for (let i = 1; i < elements.length; i += 2) {
-        if (elements[i] && elements[i + 1]) {
-          historyEntries.push(elements[i], elements[i + 1]);
-        }
-      }
-    }
-
     switch (action_id) {
       case "assign_task":
+        // Verify user data exists
         if (!user || !user.id || !user.name) {
           throw new Error('Invalid user data in payload');
         }
 
+        // Find the assign button block index
+        const assignButtonIndex = message.blocks.findIndex(block => 
+          block.type === "actions" && 
+          block.elements?.[0]?.action_id === "assign_task"
+        );
+
+        if (assignButtonIndex === -1) {
+          throw new Error('Assign button not found');
+        }
+
+        // Keep blocks before the assign button
+        const newBlocks = message.blocks.slice(0, assignButtonIndex);
+
+        // Get current EST timestamp
         const timestamp = getESTTimestamp();
-        
+
         // Create assignment section
         const assignmentSection = {
           type: "rich_text",
@@ -78,8 +66,38 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
+        // Create history section if it doesn't exist or get existing one
+        let historySection = message.blocks.find(block => 
+          block.type === "rich_text" && 
+          block.block_id?.startsWith('history_')
+        );
+
+        if (!historySection) {
+          historySection = {
+            type: "rich_text",
+            block_id: `history_${Date.now()}`,
+            elements: [
+              {
+                type: "rich_text_section",
+                elements: [
+                  {
+                    type: "text",
+                    text: "📝 Assignment History:\n",
+                    style: {
+                      bold: true
+                    }
+                  }
+                ]
+              }
+            ]
+          };
+        } else {
+          // If history section exists, remove it from newBlocks as we'll add it back later
+          newBlocks.splice(newBlocks.findIndex(block => block.block_id === historySection.block_id), 1);
+        }
+
         // Add new assignment to history
-        const newAssignEntries = [
+        historySection.elements[0].elements.push(
           {
             type: "text",
             text: `\n${timestamp} - Assigned to `
@@ -88,31 +106,7 @@ export const handleSlackInteractions = async (req, res) => {
             type: "user",
             user_id: user.id
           }
-        ];
-        
-        // Combine and limit history entries
-        historyEntries = [...historyEntries, ...newAssignEntries].slice(-10); // Keep last 5 pairs
-
-        // Create history section
-        const historySection = {
-          type: "rich_text",
-          block_id: `history_${Date.now()}`,
-          elements: [
-            {
-              type: "rich_text_section",
-              elements: [
-                {
-                  type: "text",
-                  text: "📝 Assignment History:\n",
-                  style: {
-                    bold: true
-                  }
-                },
-                ...historyEntries
-              ]
-            }
-          ]
-        };
+        );
 
         // Create unassign button
         const unassignButton = {
@@ -133,17 +127,16 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
-        // Construct new blocks array
-        const newBlocks = [
-          ...initialMessageBlocks,
-          {
-            type: "divider",
-            block_id: `div_${Date.now()}`
-          },
+        // Add all sections
+        newBlocks.push(
           assignmentSection,
           unassignButton,
+          {
+            type: "divider",
+            block_id: `div_history_${Date.now()}`
+          },
           historySection
-        ];
+        );
 
         // Update the message
         await slack.chat.update({
@@ -155,43 +148,53 @@ export const handleSlackInteractions = async (req, res) => {
         break;
 
       case "unassign_task":
+        // Find the unassign button and assignment section
+        const unassignButtonIndex = message.blocks.findIndex(block => 
+          block.type === "actions" && 
+          block.elements?.[0]?.action_id === "unassign_task"
+        );
+
+        const assignmentSectionIndex = message.blocks.findIndex(block =>
+          block.type === "rich_text" &&
+          block.elements?.[0]?.elements?.some(el => 
+            el.type === "text" && el.text.includes("Currently assigned to:")
+          )
+        );
+
+        if (unassignButtonIndex === -1 || assignmentSectionIndex === -1) {
+          throw new Error('Required blocks not found');
+        }
+
+        // Keep blocks before the assignment section
+        const resetBlocks = message.blocks.slice(0, assignmentSectionIndex);
+
+        // Get current EST timestamp
         const unassignTimestamp = getESTTimestamp();
 
-        // Add unassignment to history
-        const newUnassignEntries = [
-          {
-            type: "text",
-            text: `\n${unassignTimestamp} - Unassigned by `
-          },
-          {
-            type: "user",
-            user_id: user.id
+        // Get existing history section
+        let existingHistory = message.blocks.find(block => 
+          block.type === "rich_text" && 
+          block.block_id?.startsWith('history_')
+        );
+
+        if (existingHistory) {
+          // Remove existing history from resetBlocks if it exists
+          const historyIndex = resetBlocks.findIndex(block => block.block_id === existingHistory.block_id);
+          if (historyIndex !== -1) {
+            resetBlocks.splice(historyIndex, 1);
           }
-        ];
 
-        // Combine and limit history entries
-        historyEntries = [...historyEntries, ...newUnassignEntries].slice(-10);
-
-        // Create updated history section
-        const updatedHistory = {
-          type: "rich_text",
-          block_id: `history_${Date.now()}`,
-          elements: [
+          existingHistory.elements[0].elements.push(
             {
-              type: "rich_text_section",
-              elements: [
-                {
-                  type: "text",
-                  text: "📝 Assignment History:\n",
-                  style: {
-                    bold: true
-                  }
-                },
-                ...historyEntries
-              ]
+              type: "text",
+              text: `\n${unassignTimestamp} - Unassigned by `
+            },
+            {
+              type: "user",
+              user_id: user.id
             }
-          ]
-        };
+          );
+        }
 
         // Create assign button
         const assignButton = {
@@ -212,16 +215,15 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
-        // Construct new blocks array
-        const resetBlocks = [
-          ...initialMessageBlocks,
+        // Add sections
+        resetBlocks.push(
+          assignButton,
           {
             type: "divider",
-            block_id: `div_${Date.now()}`
+            block_id: `div_history_${Date.now()}`
           },
-          assignButton,
-          updatedHistory
-        ];
+          existingHistory
+        );
 
         // Update the message
         await slack.chat.update({
@@ -241,6 +243,7 @@ export const handleSlackInteractions = async (req, res) => {
     console.error("Error handling Slack interaction:", error);
     await sendErrorWebhook(`Slack Interaction Error: ${error.message}`);
     
+    // Send a response to Slack to acknowledge the interaction
     res.status(200).json({
       response_type: "ephemeral",
       text: "Sorry, there was an error processing your request. Our team has been notified."
