@@ -72,19 +72,11 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
                         });
                     }
 
-                    // Add earnings message
-                    const tipAmount = orderDetails.driverTip || 0;
-                    const notesMessage = tipAmount >= 25 
-                        ? `\n\nProjected earning for this order is $${tipAmount} including tips`
-                        : '\n\nThis order projected earning is $25 including tips';
-
-                    const newNotes = orderDetails.cleanedNotes + notesMessage;
-                    console.log('Updating task with extracted details:', { metadata, newNotes });
-
+                    // Skip earnings message for now
                     const updatedTask = await updateOnfleetTask({
                         taskId: taskId,
                         metadata: metadata,
-                        notes: newNotes
+                        notes: orderDetails.cleanedNotes
                     });
 
                     if (!updatedTask) {
@@ -102,6 +94,18 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
                 }
             }
 
+            // Check if task has nash metadata before adding default notes
+            const hasNash = hasNashMetadata(task.metadata);
+            if (hasNash) {
+                console.log('Task has Nash metadata, skipping default notes');
+                return res.status(200).json({
+                    success: true,
+                    message: 'Task has Nash metadata, no updates needed',
+                    task: task
+                });
+            }
+
+            // Only add default notes for non-Nash tasks
             const newNotes = `${task.notes || ''}\n\nThis order projected earning is $25 including tips`;
             console.log('Updating task with default notes:', newNotes);
             
@@ -126,116 +130,12 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
 
         // Check if task has nash metadata
         const hasNash = hasNashMetadata(task.metadata);
-
-        // Check for nash_batch_route_duration first
-        const routeDurationMeta = task.metadata.find(meta => meta.name === 'nash_batch_route_duration');
-        if (routeDurationMeta) {
-            // Extract hours from string like "2.07 hours"
-            const hours = parseFloat(routeDurationMeta.value);
-            if (!isNaN(hours)) {
-                // Check customer name from metadata
-                const customerNameMeta = task.metadata.find(meta => meta.name === 'nash_customer_name');
-                const customerName = customerNameMeta?.value?.toLowerCase() || '';
-                
-                let projectedEarning = 0;
-                
-                if (customerName.includes('alto')) {
-                    // Handle Alto tasks
-                    const fullAddress = [
-                        task.destination?.address?.street,
-                        task.destination?.address?.apartment,
-                        task.destination?.address?.city,
-                        task.destination?.address?.state,
-                        task.destination?.address?.postalCode
-                    ].filter(Boolean).join(' ').toLowerCase();
-
-                    const isAustin = fullAddress.includes('austin');
-                    const hourlyRate = isAustin ? 26 : 28;
-                    projectedEarning = (hours * hourlyRate).toFixed(2);
-                } else if (customerName.includes('shef')) {
-                    // Handle Shef tasks
-                    const isChicago = task.destination?.address?.city?.toLowerCase().includes('chicago');
-                    projectedEarning = calculateShefRate(hours, isChicago ? 'chicago' : 'seattle').toFixed(2);
-                } else {
-                    // Skip if not Alto or Shef
-                    return;
-                }
-
-                const newNotes = `${task.notes || ''}\n\nProjected Earning for this order is $${projectedEarning} including tips`;
-                console.log('Updating task with notes:', newNotes);
-
-                const updatedTask = await updateOnfleetTask({
-                    taskId: taskId,
-                    notes: newNotes
-                });
-
-                if (!updatedTask) {
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Failed to update task in OnFleet',
-                    });
-                }
-
-                return res.status(200).json({
-                    success: true,
-                    message: 'Projected earnings added to notes based on route duration',
-                    projectedEarning,
-                    task: updatedTask
-                });
-            }
-        }
-
-        // If task has nash metadata, skip metadata updates and only update notes if needed
         if (hasNash) {
-            const tipMeta = task.metadata.find(meta => meta.name === 'driver_tip');
-            if (tipMeta) {
-                const tipAmount = parseFloat(tipMeta.value);
-                const notesMessage = tipAmount >= 25 
-                    ? `\n\nProjected earning for this order is $${tipAmount} including tips`
-                    : '\n\nThis order projected earning is $25 including tips';
-
-                const newNotes = `${task.notes || ''}${notesMessage}`;
-                console.log('Updating nash task with tip notes:', newNotes);
-
-                const updatedTask = await updateOnfleetTask({
-                    taskId: taskId,
-                    notes: newNotes
-                });
-
-                if (!updatedTask) {
-                    return res.status(500).json({
-                        success: false,
-                        message: 'Failed to update task in OnFleet',
-                    });
-                }
-
-                return res.status(200).json({
-                    success: true,
-                    message: 'Updated notes for nash task',
-                    task: updatedTask
-                });
-            }
-
-            // If no tip in metadata, add default note
-            const newNotes = `${task.notes || ''}\n\nThis order projected earning is $25 including tips`;
-            console.log('Updating nash task with default notes:', newNotes);
-
-            const updatedTask = await updateOnfleetTask({
-                taskId: taskId,
-                notes: newNotes
-            });
-
-            if (!updatedTask) {
-                return res.status(500).json({
-                    success: false,
-                    message: 'Failed to update task in OnFleet',
-                });
-            }
-
+            console.log('Task has Nash metadata, skipping updates');
             return res.status(200).json({
                 success: true,
-                message: 'Added default earning note to nash task',
-                task: updatedTask
+                message: 'Task has Nash metadata, no updates needed',
+                task: task
             });
         }
 
