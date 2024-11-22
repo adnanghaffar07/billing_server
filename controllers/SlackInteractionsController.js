@@ -5,6 +5,42 @@ import { getESTTimestamp } from "../utils/dateFormatter.js";
 
 dotenv.config();
 
+const MAX_HISTORY_ENTRIES = 5; // Limit history to last 5 entries
+
+const trimHistory = (elements) => {
+  // Find where history entries start (after the header)
+  const historyStartIndex = elements[0].elements.findIndex(el => 
+    el.type === "text" && el.text.includes("Assignment History")
+  );
+
+  if (historyStartIndex === -1) return elements;
+
+  // Get all history entries (they start with newlines)
+  const historyEntries = elements[0].elements
+    .slice(historyStartIndex + 1)
+    .filter(el => el.type === "text" && el.text.startsWith("\n"))
+    .map((_, index, array) => array.slice(index * 2, (index + 1) * 2))
+    .filter(entry => entry.length === 2); // Each entry has text and user mention
+
+  // Keep only the last MAX_HISTORY_ENTRIES
+  const trimmedEntries = historyEntries.slice(-MAX_HISTORY_ENTRIES);
+
+  // Reconstruct the elements array
+  return [{
+    type: "rich_text_section",
+    elements: [
+      {
+        type: "text",
+        text: "📝 Assignment History:\n",
+        style: {
+          bold: true
+        }
+      },
+      ...trimmedEntries.flat()
+    ]
+  }];
+};
+
 export const handleSlackInteractions = async (req, res) => {
   try {
     const payload = JSON.parse(req.body.payload);
@@ -36,8 +72,12 @@ export const handleSlackInteractions = async (req, res) => {
           throw new Error('Assign button not found');
         }
 
-        // Keep blocks before the assign button
-        const newBlocks = message.blocks.slice(0, assignButtonIndex);
+        // Keep original message blocks and blocks before assign button
+        const originalMessageBlocks = message.blocks.slice(0, message.blocks.findIndex(block => 
+          block.type === "rich_text" || 
+          block.type === "actions"
+        ));
+        const newBlocks = [...originalMessageBlocks];
 
         // Get current EST timestamp
         const timestamp = getESTTimestamp();
@@ -91,9 +131,6 @@ export const handleSlackInteractions = async (req, res) => {
               }
             ]
           };
-        } else {
-          // If history section exists, remove it from newBlocks as we'll add it back later
-          newBlocks.splice(newBlocks.findIndex(block => block.block_id === historySection.block_id), 1);
         }
 
         // Add new assignment to history
@@ -107,6 +144,9 @@ export const handleSlackInteractions = async (req, res) => {
             user_id: user.id
           }
         );
+
+        // Trim history if needed
+        historySection.elements = trimHistory(historySection.elements);
 
         // Create unassign button
         const unassignButton = {
@@ -165,8 +205,12 @@ export const handleSlackInteractions = async (req, res) => {
           throw new Error('Required blocks not found');
         }
 
-        // Keep blocks before the assignment section
-        const resetBlocks = message.blocks.slice(0, assignmentSectionIndex);
+        // Keep original message blocks
+        const originalUnassignBlocks = message.blocks.slice(0, message.blocks.findIndex(block => 
+          block.type === "rich_text" || 
+          block.type === "actions"
+        ));
+        const resetBlocks = [...originalUnassignBlocks];
 
         // Get current EST timestamp
         const unassignTimestamp = getESTTimestamp();
@@ -178,12 +222,6 @@ export const handleSlackInteractions = async (req, res) => {
         );
 
         if (existingHistory) {
-          // Remove existing history from resetBlocks if it exists
-          const historyIndex = resetBlocks.findIndex(block => block.block_id === existingHistory.block_id);
-          if (historyIndex !== -1) {
-            resetBlocks.splice(historyIndex, 1);
-          }
-
           existingHistory.elements[0].elements.push(
             {
               type: "text",
@@ -194,6 +232,9 @@ export const handleSlackInteractions = async (req, res) => {
               user_id: user.id
             }
           );
+
+          // Trim history if needed
+          existingHistory.elements = trimHistory(existingHistory.elements);
         }
 
         // Create assign button
