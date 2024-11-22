@@ -21,6 +21,7 @@ import jwt from "jsonwebtoken";
 import { handleSlackInteractions } from "../controllers/SlackInteractionsController.js";
 import { onFleetRemoveTipsFromMetaData } from "../controllers/makeUtilsControllers/onFleetRemoveMetaData.js";
 import { handleTaskMock } from "../controllers/mocksFunc/testUserInteractions.js";
+import { handleTaskOptimizationRoute } from "../controllers/OnFleet/optimizedRoute.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -125,6 +126,12 @@ router
     res.status(200).send(req.query.check);
   })
   .post(handleTaskAssigned);
+router
+  .route("/onfleet/routeOptimization")
+  .get((req, res) => {
+    res.status(200).send(req.query.check);
+  })
+  .post(handleTaskOptimizationRoute);
 
 /** Onboard API Routes */
 router.post("/api/onboard/onfleet", OnboardController.handleOnfleetOnboard);

@@ -71,18 +71,33 @@ export const handleSlackInteractions = async (req, res) => {
     const action = actions[0];
     const { action_id, value: taskId } = action;
 
-    // Keep original message blocks
+    // Keep original message blocks (excluding assignment-related blocks)
     const originalBlocks = message.blocks.filter(block => 
-      !block.block_id?.startsWith('assign_') && 
-      !block.block_id?.startsWith('history_') && 
-      !block.block_id?.startsWith('div_')
+      !block.block_id?.includes('assign_') && 
+      !block.block_id?.includes('history_') && 
+      !block.block_id?.includes('div_') &&
+      !block.type.includes('actions')
     );
 
-    // Get existing history if any
+    // Get existing history entries if any
     const existingHistory = message.blocks.find(block => 
       block.type === "rich_text" && 
       block.block_id?.startsWith('history_')
     );
+
+    let historyEntries = [];
+    if (existingHistory && existingHistory.elements[0]?.elements) {
+      // Get all entries after the header
+      historyEntries = existingHistory.elements[0].elements
+        .slice(1) // Skip header
+        .reduce((acc, curr, i, arr) => {
+          if (i % 2 === 0 && arr[i + 1]) {
+            acc.push([curr, arr[i + 1]]);
+          }
+          return acc;
+        }, [])
+        .flat();
+    }
 
     switch (action_id) {
       case "assign_task":
@@ -116,8 +131,8 @@ export const handleSlackInteractions = async (req, res) => {
           ]
         };
 
-        // Create new history entry
-        const newAssignEntry = [
+        // Add new assignment to history
+        historyEntries.push(
           {
             type: "text",
             text: `\n${timestamp} - Assigned to `
@@ -126,10 +141,31 @@ export const handleSlackInteractions = async (req, res) => {
             type: "user",
             user_id: user.id
           }
-        ];
+        );
 
-        // Create history section with new entry
-        const historySection = createHistorySection(existingHistory, newAssignEntry);
+        // Keep only last 5 entries
+        historyEntries = historyEntries.slice(-10); // Keep last 5 pairs (10 elements)
+
+        // Create history section
+        const historySection = {
+          type: "rich_text",
+          block_id: `history_${Date.now()}`,
+          elements: [
+            {
+              type: "rich_text_section",
+              elements: [
+                {
+                  type: "text",
+                  text: "📝 Assignment History:\n",
+                  style: {
+                    bold: true
+                  }
+                },
+                ...historyEntries
+              ]
+            }
+          ]
+        };
 
         // Create unassign button
         const unassignButton = {
@@ -174,8 +210,8 @@ export const handleSlackInteractions = async (req, res) => {
       case "unassign_task":
         const unassignTimestamp = getESTTimestamp();
 
-        // Create new history entry
-        const newUnassignEntry = [
+        // Add unassignment to history
+        historyEntries.push(
           {
             type: "text",
             text: `\n${unassignTimestamp} - Unassigned by `
@@ -184,10 +220,31 @@ export const handleSlackInteractions = async (req, res) => {
             type: "user",
             user_id: user.id
           }
-        ];
+        );
 
-        // Create history section with new entry
-        const updatedHistory = createHistorySection(existingHistory, newUnassignEntry);
+        // Keep only last 5 entries
+        historyEntries = historyEntries.slice(-10); // Keep last 5 pairs (10 elements)
+
+        // Create updated history section
+        const updatedHistory = {
+          type: "rich_text",
+          block_id: `history_${Date.now()}`,
+          elements: [
+            {
+              type: "rich_text_section",
+              elements: [
+                {
+                  type: "text",
+                  text: "📝 Assignment History:\n",
+                  style: {
+                    bold: true
+                  }
+                },
+                ...historyEntries
+              ]
+            }
+          ]
+        };
 
         // Create assign button
         const assignButton = {
