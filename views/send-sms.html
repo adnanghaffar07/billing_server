@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send SMS to Onfleet Teams</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        .multiselect {
+            width: 100%;
+            position: relative;
+        }
+        .selectBox {
+            position: relative;
+        }
+        .selectBox select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+        }
+        .overSelect {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+        #checkboxes {
+            display: none;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            max-height: 300px;
+            overflow-y: auto;
+            position: absolute;
+            width: 100%;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #checkboxes label {
+            display: block;
+            padding: 8px 10px;
+            cursor: pointer;
+        }
+        #checkboxes label:hover {
+            background-color: #f6f6f6;
+        }
+        #checkboxes input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        .selected-count {
+            margin-top: 5px;
+            font-size: 14px;
+            color: #666;
+        }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .error {
+            color: #ff0000;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+        .success {
+            color: #4CAF50;
+            margin-top: 5px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Send SMS to Onfleet Teams</h1>
+        <form id="smsForm">
+            <div class="form-group">
+                <label>Select Teams (Multiple):</label>
+                <div class="multiselect">
+                    <div class="selectBox" onclick="toggleCheckboxes()">
+                        <select>
+                            <option>Select Teams...</option>
+                        </select>
+                        <div class="overSelect"></div>
+                    </div>
+                    <div id="checkboxes"></div>
+                </div>
+                <div class="selected-count" id="selectedCount">No teams selected</div>
+            </div>
+            <div class="form-group">
+                <label for="message">Message:</label>
+                <textarea id="message" name="message" required placeholder="Enter your message here..."></textarea>
+            </div>
+            <button type="submit" id="sendButton">Send SMS</button>
+            <div id="status"></div>
+        </form>
+    </div>
+
+    <script>
+        let expanded = false;
+        const selectedTeams = new Set();
+
+        function toggleCheckboxes() {
+            const checkboxes = document.getElementById("checkboxes");
+            if (!expanded) {
+                checkboxes.style.display = "block";
+                expanded = true;
+            } else {
+                checkboxes.style.display = "none";
+                expanded = false;
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const multiselect = document.querySelector('.multiselect');
+            if (!multiselect.contains(e.target)) {
+                document.getElementById("checkboxes").style.display = "none";
+                expanded = false;
+            }
+        });
+
+        function updateSelectedCount() {
+            const count = selectedTeams.size;
+            document.getElementById('selectedCount').textContent = 
+                count === 0 ? 'No teams selected' :
+                count === 1 ? '1 team selected' :
+                `${count} teams selected`;
+        }
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            const checkboxesDiv = document.getElementById('checkboxes');
+            const smsForm = document.getElementById('smsForm');
+            const sendButton = document.getElementById('sendButton');
+            const statusDiv = document.getElementById('status');
+
+            // Fetch teams from Onfleet
+            try {
+                const response = await fetch('/api/onfleet/teams');
+                const teams = await response.json();
+                
+                // Sort teams alphabetically by name
+                teams.sort((a, b) => a.name.localeCompare(b.name));
+                
+                // Add teams as checkboxes
+                teams.forEach(team => {
+                    const label = document.createElement('label');
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.value = team.id;
+                    checkbox.addEventListener('change', function() {
+                        if (this.checked) {
+                            selectedTeams.add(this.value);
+                        } else {
+                            selectedTeams.delete(this.value);
+                        }
+                        updateSelectedCount();
+                    });
+                    label.appendChild(checkbox);
+                    label.appendChild(document.createTextNode(team.name));
+                    checkboxesDiv.appendChild(label);
+                });
+            } catch (error) {
+                console.error('Error fetching teams:', error);
+                checkboxesDiv.innerHTML = '<p style="padding: 10px; color: red;">Error loading teams</p>';
+            }
+
+            // Handle form submission
+            smsForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const message = document.getElementById('message').value.trim();
+
+                if (selectedTeams.size === 0) {
+                    statusDiv.textContent = 'Please select at least one team';
+                    statusDiv.className = 'error';
+                    return;
+                }
+
+                if (!message) {
+                    statusDiv.textContent = 'Please enter a message';
+                    statusDiv.className = 'error';
+                    return;
+                }
+
+                sendButton.disabled = true;
+                statusDiv.textContent = 'Sending...';
+                statusDiv.className = '';
+
+                try {
+                    const response = await fetch('/api/send-sms', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            teams: Array.from(selectedTeams),
+                            message: message
+                        })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        statusDiv.textContent = 'SMS sent successfully!';
+                        statusDiv.className = 'success';
+                        smsForm.reset();
+                        selectedTeams.clear();
+                        updateSelectedCount();
+                        const checkboxes = document.querySelectorAll('#checkboxes input[type="checkbox"]');
+                        checkboxes.forEach(cb => cb.checked = false);
+                    } else {
+                        throw new Error(result.message || 'Failed to send SMS');
+                    }
+                } catch (error) {
+                    statusDiv.textContent = error.message || 'Error sending SMS';
+                    statusDiv.className = 'error';
+                } finally {
+                    sendButton.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>

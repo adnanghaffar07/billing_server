@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import * as OrderController from "../controllers/OrderController.js";
 import * as HealthController from "../controllers/HealthController.js";
 import * as OnboardController from "../controllers/OnboardController.js";
+import * as SmsController from "../controllers/SmsController.js";
 import { handleTaskDeletion } from "../controllers/OnFleet/taskDeleted.js";
 import { handleTaskAssigned } from "../controllers/OnFleet/taskAssigned.js";
 import {
@@ -59,11 +60,11 @@ const protectOnboardRoute = (req, res, next) => {
 /** Protected Onboarding Routes */
 router.get("/onboard-stitch", protectOnboardRoute, (req, res) => {
   res.sendFile(path.join(__dirname, "../views/onboard-stitch.html"));
-});
+ });
 
 router.get("/onboard-onfleet", protectOnboardRoute, (req, res) => {
   res.sendFile(path.join(__dirname, "../views/onboard-onfleet.html"));
-});
+ });
 
 // Root redirect
 router.get("/", (req, res) => {
@@ -113,7 +114,6 @@ router
 router.post("/slack/interactions", handleSlackInteractions);
 router.get("/slack/mockTests", handleTaskMock);
 
-
 /** OnFleet Remove Tips Route */
 router.route("/onfleet/removeTips").get((req, res) => {
   res.status(200).send(req.query.check);
@@ -137,5 +137,11 @@ router
 router.post("/api/onboard/onfleet", OnboardController.handleOnfleetOnboard);
 router.post("/api/onboard/stitch", OnboardController.handleStitchOnboard);
 router.get("/api/onfleet/teams", OnboardController.getOnfleetTeams);
+
+/** SMS Routes */
+router.get("/sendSmsToTeams", (req, res) => {
+  res.sendFile(path.join(__dirname, "../views/send-sms.html"));
+});
+router.post("/api/send-sms", SmsController.sendSmsToTeams);
 
 export default router;
