@@ -23,6 +23,7 @@ import { handleSlackInteractions } from "../controllers/SlackInteractionsControl
 import { onFleetRemoveTipsFromMetaData } from "../controllers/makeUtilsControllers/onFleetRemoveMetaData.js";
 import { handleTaskMock } from "../controllers/mocksFunc/testUserInteractions.js";
 import { handleTaskOptimizationRoute } from "../controllers/OnFleet/optimizedRoute.js";
+import { sendWebhookDataToSlack } from "../controllers/mocksFunc/sendWebhookDataToSlack.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -132,6 +133,11 @@ router
     res.status(200).send(req.query.check);
   })
   .post(handleTaskOptimizationRoute);
+
+router
+  .route("/test/webhook")
+  .get(sendWebhookDataToSlack)
+  .post(sendWebhookDataToSlack);
 
 /** Onboard API Routes */
 router.post("/api/onboard/onfleet", OnboardController.handleOnfleetOnboard);
