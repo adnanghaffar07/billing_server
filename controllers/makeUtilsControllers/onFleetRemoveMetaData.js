@@ -57,7 +57,7 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
                     if (orderDetails.driverTip !== null) {
                         metadata.push({
                             type: 'number',
-                            visibility: ['api'],
+                            visibility: ['api', 'dashboard'],
                             value: orderDetails.driverTip,
                             name: 'driver_tip'
                         });
