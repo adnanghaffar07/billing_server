@@ -149,6 +149,7 @@
     <script>
         let expanded = false;
         const selectedTeams = new Set();
+        const teamNames = new Map();
 
         function toggleCheckboxes() {
             const checkboxes = document.getElementById("checkboxes");
@@ -171,11 +172,13 @@
         });
 
         function updateSelectedCount() {
-            const count = selectedTeams.size;
-            document.getElementById('selectedCount').textContent = 
-                count === 0 ? 'No teams selected' :
-                count === 1 ? '1 team selected' :
-                `${count} teams selected`;
+            if (selectedTeams.size === 0) {
+                document.getElementById('selectedCount').textContent = 'No teams selected';
+                return;
+            }
+
+            const selectedTeamNames = Array.from(selectedTeams).map(teamId => teamNames.get(teamId));
+            document.getElementById('selectedCount').textContent = `Selected: ${selectedTeamNames.join(', ')}`;
         }
 
         document.addEventListener('DOMContentLoaded', async () => {
@@ -198,6 +201,7 @@
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.value = team.id;
+                    teamNames.set(team.id, team.name);
                     checkbox.addEventListener('change', function() {
                         if (this.checked) {
                             selectedTeams.add(this.value);
@@ -207,7 +211,14 @@
                         updateSelectedCount();
                     });
                     label.appendChild(checkbox);
-                    label.appendChild(document.createTextNode(team.name));
+                    const nameText = document.createTextNode(`${team.name} - `);
+                    const workerSpan = document.createElement('span');
+                    workerSpan.style.color = '#4CAF50';  
+                    workerSpan.textContent = `Total Workers: ${team.workers.length}`;
+                    // const closingBracket = document.createTextNode(')');
+                    label.appendChild(nameText);
+                    label.appendChild(workerSpan);
+                    // label.appendChild(closingBracket);
                     checkboxesDiv.appendChild(label);
                 });
             } catch (error) {
