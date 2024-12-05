@@ -2,13 +2,14 @@ import { sendSlackMessage } from "../../utils/slackConfig.js";
 import { getAdminDetails } from "../../utils/onfleetConfig.js";
 import {
   getAddressFromCoordinates,
-  getTimeZoneFromCoordinates,
+  getTimeZoneFromCoordinates
 } from "../../utils/googleFunctions.js";
 import {
   dateFormatter,
   shortDateFormatter,
 } from "../../utils/dateFormatter.js";
 import dotenv from "dotenv";
+import { sendSMS } from "../../utils/twilioConfig.js";
 
 dotenv.config();
 
@@ -47,6 +48,19 @@ const handleTaskAssigned = async (req, res) => {
     const deliveryDate = new Date(payload.data.task.completeBefore);
     const formattedDeliveryDate = dateFormatter(deliveryDate, getTimeZone);
     const driverPhoneNo = payload.data.worker.phone;
+    const driverFirstName = driverName.split(' ')[0];
+
+    console.log(
+      `Task ${taskShortId} assigned by ${adminName} to ${driverName}`
+    );
+    // Send SMS to driver
+    try {
+        const smsMessage = `Hi ${driverFirstName},\n\nYou have been assigned a task.\nRecipient: ${businessName}\nAddress: ${businessAddress}\nDelivery Date: ${formattedDeliveryDate}\n\nPlease remember to dress professional and arrive on time.\n\nThanks,\nDragonfly Tech`;
+        await sendSMS(driverPhoneNo, smsMessage);
+    } catch (error) {
+        console.error('Error sending SMS to driver:', error);
+        // Continue execution even if SMS fails
+    }
 
     // Create Slack message
     const message = {
