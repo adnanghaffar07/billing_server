@@ -3,6 +3,7 @@ import { findDriverById } from "../utils/dragonflyConfig.js";
 import { getOrderDetailsWebhook } from "../utils/webhookUtils.js";
 import { formatWaypointTime } from "../utils/timeUtils.js";
 import dotenv from "dotenv";
+import { sendSMS } from "../utils/twilioConfig.js";
 
 dotenv.config();
 
@@ -29,7 +30,7 @@ export const driver_assigned = async (req, res) => {
     }
 
     const orderDetails = await getOrderDetailsWebhook(orderId);
-    console.log(orderDetails);
+    // console.log(orderDetails);
 
     // Format pickup and dropoff times
     const pickupTime = await formatWaypointTime(orderDetails.pickup_waypoint);
@@ -44,6 +45,17 @@ export const driver_assigned = async (req, res) => {
         message: "Driver not found",
       });
     }
+
+    const driverPhoneNo = driverDetails.phone;
+    const driverFirstName = driverDetails.first_name;
+
+    try {
+      const smsMessage = `Hi ${driverFirstName},\n\nYou have been assigned a task.\nRecipient: ${orderDetails.pickup_waypoint.name}\nAddress: ${orderDetails.pickup_waypoint.address}\nTime: ${pickupTime.formattedTime}\n\nPlease remember to dress professional and arrive on time.\n\nThanks,\nDragonfly Tech`;
+      await sendSMS(driverPhoneNo, smsMessage);
+  } catch (error) {
+      console.error('Error sending SMS to driver:', error);
+      // Continue execution even if SMS fails
+  }
 
     const message = {
       text: `Cartwheel Task Assigned`,
