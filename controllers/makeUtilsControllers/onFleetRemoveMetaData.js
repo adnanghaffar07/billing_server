@@ -1,5 +1,6 @@
 import { getSingleOnfleetTask, updateOnfleetTask } from "../../utils/onfleetConfig.js";
 import { extractOrderDetailsFromNotes } from "../../utils/openaiConfig.js";
+import { checkAndNotifyHighValueOrder } from "../../utils/highValueOrderUtils.js";
 
 const calculateShefRate = (routeDuration, location) => {
     // Convert hours to minutes
@@ -127,6 +128,9 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
                 task: updatedTask
             });
         }
+
+        // Check for high value order
+        await checkAndNotifyHighValueOrder(task);
 
         // Check if task has nash metadata
         const hasNash = hasNashMetadata(task.metadata);
