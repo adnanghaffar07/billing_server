@@ -57,6 +57,13 @@ export const checkAndNotifyHighValueOrder = async (task) => {
                 text: "High Value Order Alert",
                 blocks: [
                     {
+                        type: "section",
+                        text: {
+                            type: "mrkdwn",
+                            text: "<!channel>"
+                        }
+                    },
+                    {
                         type: "divider"
                     },
                     {
@@ -65,13 +72,6 @@ export const checkAndNotifyHighValueOrder = async (task) => {
                             {
                                 type: "rich_text_section",
                                 elements: [
-                                    {
-                                        type: "text",
-                                        text: "@here",
-                                        style: {
-                                            bold: true
-                                        }
-                                    },
                                     {
                                         type: "emoji",
                                         name: "money_with_wings",
@@ -122,7 +122,27 @@ export const checkAndNotifyHighValueOrder = async (task) => {
                     },
                     {
                         type: "divider"
-                    }
+                    },
+                    {
+                        type: "rich_text",
+                        elements: [
+                          {
+                            type: "rich_text_section",
+                            elements: [
+                              {
+                                type: "text",
+                                text: `Note: For high-value orders, exercise extra caution when assigning drivers. Ensure the best possible driver is selected to minimize risks and ensure secure delivery.`,
+                                style: {
+                                  italic: true,
+                                },
+                              },
+                            ],
+                          },
+                        ],
+                      },
+                      {
+                        type: "divider",
+                      },
                 ]
             };
 
