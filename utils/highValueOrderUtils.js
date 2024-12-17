@@ -1,7 +1,16 @@
+import { dateFormatter } from "./dateFormatter.js";
+import { getTimeZoneFromCoordinates } from "./googleFunctions.js";
 import { sendSlackMessage } from "./slackConfig.js";
 
 export const checkAndNotifyHighValueOrder = async (task) => {
     try {
+
+        const locationCoordinates = task.destination.location;
+        const formattedCoordinates = locationCoordinates.reverse().join(",");
+        const getTimeZone = await getTimeZoneFromCoordinates(formattedCoordinates);
+        const deliveryDate = new Date(task.completeBefore);
+        const formattedDeliveryDate = dateFormatter(deliveryDate, getTimeZone);
+
         // Validate task object and its required properties
         if (!task) {
             console.log('Task object is missing');
@@ -60,7 +69,7 @@ export const checkAndNotifyHighValueOrder = async (task) => {
                         type: "section",
                         text: {
                             type: "mrkdwn",
-                            text: "<!channel>"
+                            text: "<!here>"
                         }
                     },
                     {
@@ -96,7 +105,7 @@ export const checkAndNotifyHighValueOrder = async (task) => {
                                 elements: [
                                     {
                                         type: "text",
-                                        text: `Task ID: ${taskId}\nOrder Subtotal: $${subtotal.toFixed(2)}\nBusiness Name: ${businessName}`,
+                                        text: `Task ID: ${taskId}\nOrder Subtotal: $${subtotal.toFixed(2)}\nBusiness Name: ${businessName}\nDelivery Date: ${formattedDeliveryDate}`,
                                         style: {}
                                     }
                                 ]
