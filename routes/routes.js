@@ -24,6 +24,7 @@ import { onFleetRemoveTipsFromMetaData } from "../controllers/makeUtilsControlle
 import { handleTaskMock } from "../controllers/mocksFunc/testUserInteractions.js";
 import { handleTaskOptimizationRoute } from "../controllers/OnFleet/optimizedRoute.js";
 import { sendWebhookDataToSlack } from "../controllers/mocksFunc/sendWebhookDataToSlack.js";
+import { handleTaskUpdates } from "../controllers/OnFleet/taskUpdates.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -133,6 +134,13 @@ router
     res.status(200).send(req.query.check);
   })
   .post(handleTaskOptimizationRoute);
+
+router
+  .route("/onfleet/taskUpdates")
+  .get((req, res) => {
+    res.status(200).send(req.query.check);
+  })
+  .post(handleTaskUpdates);
 
 router
   .route("/test/webhook")

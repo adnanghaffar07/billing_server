@@ -240,7 +240,7 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
         
         // Check if location is New York and add $20 to tips
         const location = task.destination?.address?.city;
-        const adjustedTipAmount = location?.toLowerCase() === 'new york' ? tipAmount + 20 : tipAmount;
+        const adjustedTipAmount = location?.toLowerCase() === 'new york' || 'brooklyn' || 'queens' || 'bronx' || 'staten island' ? tipAmount + 20 : tipAmount;
 
         if (adjustedTipAmount >= 25) {
             notesMessage = `\n\nProjected earning for this order is $${adjustedTipAmount} including tips`;
