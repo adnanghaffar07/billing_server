@@ -2,7 +2,7 @@ import { sendSmSWebhook } from "../utils/webhookUtils.js";
 
 export const sendSmsToTeams = async (req, res) => {
     try {
-        const { teams, message } = req.body;
+        const { teams, message, dispatcherName } = req.body;
 
         if (!teams || !Array.isArray(teams) || teams.length === 0) {
             return res.status(400).json({
@@ -18,9 +18,16 @@ export const sendSmsToTeams = async (req, res) => {
             });
         }
 
+        if (!dispatcherName || dispatcherName.trim().length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'dispatcher Name is required'
+            });
+        }
+
         // Here you would make the API call to make.com
         // This is a placeholder for the actual API call
-        await sendSmSWebhook(teams, message);
+        await sendSmSWebhook(teams, message, dispatcherName);
 
         res.status(200).json({
             success: true,

@@ -125,6 +125,11 @@
         <h1>Send SMS to Onfleet Teams</h1>
         <form id="smsForm">
             <div class="form-group">
+                <label for="dispatcherName">Dispatcher Name:</label>
+                <input type="text" id="dispatcherName" name="dispatcherName" required 
+                    style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+            </div>
+            <div class="form-group">
                 <label>Select Teams (Multiple):</label>
                 <div class="multiselect">
                     <div class="selectBox" onclick="toggleCheckboxes()">
@@ -186,6 +191,7 @@
             const smsForm = document.getElementById('smsForm');
             const sendButton = document.getElementById('sendButton');
             const statusDiv = document.getElementById('status');
+            const dispatcherName = document.getElementById('dispatcherName').value.trim();
 
             // Fetch teams from Onfleet
             try {
@@ -231,6 +237,13 @@
                 e.preventDefault();
                 
                 const message = document.getElementById('message').value.trim();
+                const dispatcherName = document.getElementById('dispatcherName').value.trim();
+
+                if (!dispatcherName) {
+                    statusDiv.textContent = 'Please enter dispatcher name';
+                    statusDiv.className = 'error';
+                    return;
+                }
 
                 if (selectedTeams.size === 0) {
                     statusDiv.textContent = 'Please select at least one team';
@@ -256,7 +269,8 @@
                         },
                         body: JSON.stringify({
                             teams: Array.from(selectedTeams),
-                            message: message
+                            message: message,
+                            dispatcherName: dispatcherName
                         })
                     });
 

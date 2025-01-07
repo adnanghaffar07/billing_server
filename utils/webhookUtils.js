@@ -50,14 +50,15 @@ export const sendOrderWebhook = async (orderData) => {
 //         );
 //     }
 // };
-export const sendSmSWebhook = async (teams, message) => {
+export const sendSmSWebhook = async (teams, message, dispatcherName) => {
     try {
         if (!teams || !Array.isArray(teams) || teams.length === 0) {
             return "one or more fields are empty";
         }
         const makeComResponse = await axios.post(webhookUrls.sendSmsToTeams, {
             teams: teams,
-            message: message.trim() 
+            message: message.trim(),
+            sender: dispatcherName 
         });
         return makeComResponse
     } catch (error) {
