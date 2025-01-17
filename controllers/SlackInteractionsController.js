@@ -10,7 +10,7 @@ export const handleSlackInteractions = async (req, res) => {
     const payload = JSON.parse(req.body.payload);
     const { type, user, actions, container, message } = payload;
 
-    console.log(JSON.stringify(payload, null, 2), "This is payload");
+    console.log(JSON.stringify(payload, null, 2), "This is payload from slack");
 
     if (type !== "block_actions") {
       return res.status(400).json({ message: "Unsupported interaction type" });
