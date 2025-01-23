@@ -118,6 +118,15 @@
             margin-top: 5px;
             font-size: 14px;
         }
+        .char-count {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            text-align: right;
+        }
+        .char-count.warning {
+            color: #ff6b6b;
+        }
     </style>
 </head>
 <body>
@@ -144,7 +153,8 @@
             </div>
             <div class="form-group">
                 <label for="message">Message:</label>
-                <textarea id="message" name="message" required placeholder="Enter your message here..."></textarea>
+                <textarea id="message" name="message" required placeholder="Enter your message here..." maxlength="160"></textarea>
+                <div id="charCount" class="char-count">160 characters remaining</div>
             </div>
             <button type="submit" id="sendButton">Send SMS</button>
             <div id="status"></div>
@@ -191,6 +201,8 @@
             const smsForm = document.getElementById('smsForm');
             const sendButton = document.getElementById('sendButton');
             const statusDiv = document.getElementById('status');
+            const messageTextarea = document.getElementById('message');
+            const charCountDiv = document.getElementById('charCount');
             const dispatcherName = document.getElementById('dispatcherName').value.trim();
 
             // Fetch teams from Onfleet
@@ -221,16 +233,26 @@
                     const workerSpan = document.createElement('span');
                     workerSpan.style.color = '#4CAF50';  
                     workerSpan.textContent = `Total Workers: ${team.workers.length}`;
-                    // const closingBracket = document.createTextNode(')');
                     label.appendChild(nameText);
                     label.appendChild(workerSpan);
-                    // label.appendChild(closingBracket);
                     checkboxesDiv.appendChild(label);
                 });
             } catch (error) {
                 console.error('Error fetching teams:', error);
                 checkboxesDiv.innerHTML = '<p style="padding: 10px; color: red;">Error loading teams</p>';
             }
+
+            // Character counter functionality
+            messageTextarea.addEventListener('input', function() {
+                const remaining = 160 - this.value.length;
+                charCountDiv.textContent = `${remaining} characters remaining`;
+                
+                if (remaining <= 20) {
+                    charCountDiv.classList.add('warning');
+                } else {
+                    charCountDiv.classList.remove('warning');
+                }
+            });
 
             // Handle form submission
             smsForm.addEventListener('submit', async (e) => {
