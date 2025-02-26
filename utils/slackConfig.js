@@ -56,4 +56,22 @@ const getMessage = async (channel, thread_ts) => {
     }
 };
 
-export { slack, sendSlackMessage, createTaskDeletionMessage, getMessage };
+// Function to send a Slack message with a custom app emoji
+const sendSlackMessageWithEmoji = async ({ channel = process.env.SLACK_CHANNEL_ID, text, blocks, emoji, username ='Notifications'}) => {
+    try {
+        const result = await slack.chat.postMessage({
+            channel,
+            text,
+            blocks,
+            icon_emoji: emoji,
+            icon_url: emoji,
+            username
+        });
+        return result;
+    } catch (error) {
+        console.error('Error sending Slack message with custom emoji:', error);
+        throw error;
+    }
+};
+
+export { slack, sendSlackMessage, sendSlackMessageWithEmoji, createTaskDeletionMessage, getMessage };

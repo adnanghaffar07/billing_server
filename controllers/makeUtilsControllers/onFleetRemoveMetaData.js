@@ -1,6 +1,8 @@
 import { getSingleOnfleetTask, updateOnfleetTask } from "../../utils/onfleetConfig.js";
 import { extractOrderDetailsFromNotes } from "../../utils/openaiConfig.js";
 import { checkAndNotifyHighValueOrder } from "../../utils/highValueOrderUtils.js";
+import { sendPostRequest } from "../../utils/webhookUtils.js";
+import { processMetadata } from "../MetadataController.js";
 
 const calculateShefRate = (routeDuration, location) => {
     // Convert hours to minutes
@@ -36,9 +38,26 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
             });
         }
 
-        // Get the task details
-        const task = await getSingleOnfleetTask(taskId);
-        
+        // Call the webhook
+
+        try { 
+            if(!hasNashMetadata(req.body.data.task.metadata) && req.body.data.task.metadata.length > 0){   
+                console.log('Not nash metadata');
+                const processedMetadata = processMetadata(req.body.data.task.metadata);
+                console.log(processedMetadata);
+                
+                await sendPostRequest({...req.body, isNash: false, orderData: processedMetadata});
+            }else{
+                console.log('Is nash metadata');
+                await sendPostRequest({...req.body, isNash: true});
+            }
+            
+        } catch (error) {
+            console.log(error)
+        }
+            // Get the task details
+            const task = await getSingleOnfleetTask(taskId);
+            
         if (!task) {
             return res.status(404).json({
                 success: false,

@@ -22,3 +22,16 @@ export const sendSMS = async (to, message) => {
         throw error;
     }
 };
+
+export const getSms = async (to) => {
+    try {
+        const response = await client.messages.list({
+            to: to,
+            limit: 1
+        });
+        return response;
+    } catch (error) {
+        console.error('Error getting SMS:', error);
+        throw error;
+    }
+};

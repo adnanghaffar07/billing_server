@@ -26,6 +26,9 @@ import { handleTaskOptimizationRoute } from "../controllers/OnFleet/optimizedRou
 import { sendWebhookDataToSlack } from "../controllers/mocksFunc/sendWebhookDataToSlack.js";
 import { handleTaskUpdates } from "../controllers/OnFleet/taskUpdates.js";
 import { handleSlackEvents } from "../controllers/SlackEventSubscription.js";
+import { receiveSmsTwilio } from "../controllers/Twilio/SmsReceived.js";
+import { processMetadataApi } from "../controllers/MetadataController.js";
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -160,5 +163,9 @@ router.get("/sendSmsToTeams", (req, res) => {
   res.sendFile(path.join(__dirname, "../views/send-sms.html"));
 });
 router.post("/api/send-sms", SmsController.sendSmsToTeams);
+
+router.post("/twilio/smsreceived", receiveSmsTwilio);
+router.post("/api/metadata", processMetadataApi);
+
 
 export default router;

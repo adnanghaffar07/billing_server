@@ -134,5 +134,16 @@ const createOnfleetDriver = async (driverData) => {
         return null;
     }
 };
+const getWorkerByPhoneNumber = async (phoneNumber) => {
+    try {
+        const response = await onfleet.workers.get({
+            phones: phoneNumber
+        });
+        return response;
+    } catch (error) {
+        console.error('Error fetching worker by phone number:', error);
+        return null;
+    }
+};
 
-export { onfleet, getAdminDetails, getOnfleetTeamsFromServer, createOnfleetDriver, getSingleOnfleetTask, updateOnfleetTask };
+export { onfleet, getAdminDetails, getOnfleetTeamsFromServer, createOnfleetDriver, getSingleOnfleetTask, updateOnfleetTask, getWorkerByPhoneNumber };
