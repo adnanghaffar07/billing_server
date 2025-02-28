@@ -27,6 +27,52 @@ const hasNashMetadata = (metadata) => {
     );
 };
 
+// Function to convert Unix timestamps to ISO format
+const convertTimestampsToISO = (obj) => {
+    if (!obj) return obj;
+    
+    if (typeof obj === 'object') {
+        // Handle arrays
+        if (Array.isArray(obj)) {
+            return obj.map(item => convertTimestampsToISO(item));
+        }
+        
+        // Handle objects
+        const newObj = {...obj};
+        for (const key in newObj) {
+            const value = newObj[key];
+            
+            // Check if the value is already in ISO 8601 format
+            const isAlreadyISOFormat = typeof value === 'string' && 
+                                      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(value);
+            
+            // Check if the value is a potential Unix timestamp
+            // Unix timestamps are typically 10 digits (seconds) or 13 digits (milliseconds)
+            const isPotentialTimestamp = 
+                (typeof value === 'string' && /^\d{10,13}$/.test(value)) || 
+                (typeof value === 'number' && value > 1000000000); // Timestamps after 2001
+            
+            if (isPotentialTimestamp && !isAlreadyISOFormat) {
+                // Convert the timestamp to a Date and check if it's valid
+                const timestamp = parseInt(value, 10);
+                const date = new Date(timestamp);
+                
+                // Check if the date is valid and within reasonable range (2015-2035)
+                const year = date.getFullYear();
+                if (!isNaN(date) && year >= 2015 && year <= 2035) {
+                    newObj[key] = date.toISOString();
+                }
+            } else if (typeof value === 'object') {
+                // Recursively process nested objects
+                newObj[key] = convertTimestampsToISO(value);
+            }
+        }
+        return newObj;
+    }
+    
+    return obj;
+};
+
 export const onFleetRemoveTipsFromMetaData = async (req, res) => {
     try {
         const { taskId } = req.body;
@@ -46,10 +92,14 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
                 const processedMetadata = processMetadata(req.body.data.task.metadata);
                 console.log(processedMetadata);
                 
-                await sendPostRequest({...req.body, isNash: false, orderData: processedMetadata});
+                // Convert Unix timestamps to ISO format before sending
+                const formattedPayload = convertTimestampsToISO({...req.body});
+                await sendPostRequest({...formattedPayload, isNash: false, orderData: processedMetadata});
             }else{
                 console.log('Is nash metadata');
-                await sendPostRequest({...req.body, isNash: true});
+                // Convert Unix timestamps to ISO format before sending
+                const formattedPayload = convertTimestampsToISO({...req.body});
+                await sendPostRequest({...formattedPayload, isNash: true});
             }
             
         } catch (error) {
