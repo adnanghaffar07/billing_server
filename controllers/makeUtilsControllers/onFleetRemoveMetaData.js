@@ -19,7 +19,7 @@ const calculateShefRate = (routeDuration, location) => {
     return routeDuration * hourlyRate;
 };
 
-const hasNashMetadata = (metadata) => {
+export const hasNashMetadata = (metadata) => {
     if (!metadata || !Array.isArray(metadata)) return false;
     return metadata.some(meta => 
         meta.name === 'nash_customer_name' || 
@@ -28,7 +28,7 @@ const hasNashMetadata = (metadata) => {
 };
 
 // Function to convert Unix timestamps to ISO format
-const convertTimestampsToISO = (obj) => {
+export const convertTimestampsToISO = (obj) => {
     if (!obj) return obj;
     
     if (typeof obj === 'object') {

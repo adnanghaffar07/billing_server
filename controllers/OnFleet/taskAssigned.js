@@ -10,6 +10,9 @@ import {
 } from "../../utils/dateFormatter.js";
 import dotenv from "dotenv";
 import { sendSMS } from "../../utils/twilioConfig.js";
+import { convertTimestampsToISO, hasNashMetadata } from "../makeUtilsControllers/onFleetRemoveMetaData.js";
+import { processMetadata } from "../MetadataController.js";
+import { sendPostRequest } from "../../utils/webhookUtils.js";
 
 dotenv.config();
 
@@ -19,6 +22,25 @@ const handleTaskAssigned = async (req, res) => {
     if (!payload) {
       return res.status(404).json({ message: "Invalid payload or Not Found" });
     }
+    try { 
+      if(!hasNashMetadata(req.body.data.task.metadata) && req.body.data.task.metadata.length > 0){   
+          console.log('Not nash metadata');
+          const processedMetadata = processMetadata(req.body.data.task.metadata);
+          console.log(processedMetadata);
+          
+          // Convert Unix timestamps to ISO format before sending
+          const formattedPayload = convertTimestampsToISO({...req.body});
+          await sendPostRequest({...formattedPayload, isNash: false, orderData: processedMetadata});
+      }else{
+          console.log('Is nash metadata');
+          // Convert Unix timestamps to ISO format before sending
+          const formattedPayload = convertTimestampsToISO({...req.body});
+          await sendPostRequest({...formattedPayload, isNash: true});
+      }
+      
+  } catch (error) {
+      console.log(error)
+  }
 
     if (payload.data.task.pickupTask === false) {
       return res.status(200).json({
