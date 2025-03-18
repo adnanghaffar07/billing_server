@@ -28,6 +28,8 @@ import { handleTaskUpdates } from "../controllers/OnFleet/taskUpdates.js";
 import { handleSlackEvents } from "../controllers/SlackEventSubscription.js";
 import { receiveSmsTwilio } from "../controllers/Twilio/SmsReceived.js";
 import { processMetadataApi } from "../controllers/MetadataController.js";
+import { onFleetTaskCompleted } from "../controllers/OnFleet/onfleetTaskCompleted.js";
+import { onFleetTaskFailed } from "../controllers/OnFleet/onfleetTaskFailed.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -134,6 +136,21 @@ router
     res.status(200).send(req.query.check);
   })
   .post(handleTaskAssigned);
+
+router
+  .route("/onfleet/taskCompleted")
+  .get((req, res) => {
+    res.status(200).send(req.query.check);
+  })
+  .post(onFleetTaskCompleted);
+
+  router
+  .route("/onfleet/taskFailed")
+  .get((req, res) => {
+    res.status(200).send(req.query.check);
+  })
+  .post(onFleetTaskFailed);
+
 router
   .route("/onfleet/routeOptimization")
   .get((req, res) => {
