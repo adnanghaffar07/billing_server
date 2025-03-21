@@ -20,6 +20,8 @@ const handleTaskUpdates = async (req, res) => {
         return res.status(200).json({ message: "Success" });
     }
 
+    console.log("Check Payload:",payload);
+    
     const taskId = payload.data.task.id;
 
     const adminId = payload.adminId;

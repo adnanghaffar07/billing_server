@@ -42,7 +42,7 @@ export const checkAndNotifyHighValueOrder = async (task) => {
 
         console.log('Checking order value:', subtotal);
 
-        if (subtotal > 750) {
+        if (subtotal > 999) {
             console.log('High value order detected:', subtotal);
             
             // Safely get business name with fallbacks

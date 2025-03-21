@@ -3,6 +3,7 @@ import { extractOrderDetailsFromNotes } from "../../utils/openaiConfig.js";
 import { checkAndNotifyHighValueOrder } from "../../utils/highValueOrderUtils.js";
 import { sendPostRequest } from "../../utils/webhookUtils.js";
 import { processMetadata } from "../MetadataController.js";
+import { altoPickupCreated } from "../../utils/altoPickupCreated.js";
 
 const calculateShefRate = (routeDuration, location) => {
     // Convert hours to minutes
@@ -167,6 +168,7 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
             // Check if task has nash metadata before adding default notes
             const hasNash = hasNashMetadata(task.metadata);
             if (hasNash) {
+                await altoPickupCreated(task);
                 console.log('Task has Nash metadata, skipping default notes');
                 return res.status(200).json({
                     success: true,
@@ -204,6 +206,7 @@ export const onFleetRemoveTipsFromMetaData = async (req, res) => {
         // Check if task has nash metadata
         const hasNash = hasNashMetadata(task.metadata);
         if (hasNash) {
+            await altoPickupCreated(task);
             console.log('Task has Nash metadata, skipping updates');
             return res.status(200).json({
                 success: true,
